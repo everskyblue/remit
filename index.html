@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>remit</title>
+  </head>
+  <body>
+	<p class="dd" style=""></p>
+	<script src="/src/remit.min.js"></script>
+	<script>
+
+	var p = document.querySelector(".dd");
+
+	var route = new Route();
+	var req = new Request();
+	// /search?q=session
+	// req.getParams(/*optional*/);
+
+    route.url("/", function() {
+		p.innerHTML = "home";
+	});
+
+    route.url("/user/{id}", function(id) {
+		p.innerHTML = id;
+	});
+
+	route.group("/user", function(route) {
+  		route.get("/login", function() {
+			console.log("login");
+		});
+	});
+
+
+	dispatch(function(isfount) {
+		if (isfount == false){
+			alert("page not fount");
+		}
+	});
+	  
+	/**
+ 	 * define type url
+ 	 * /user/{name:string}
+     * /user/{id:number}
+ 	 * /user/{name:upper}
+ 	 * /user/{name:lower}
+ 	 * /user/{name}
+ 	 * /user/{id:number}/{name}
+	 *
+ 	 * callback
+  	 * route.url("/", {render: function(){ } });
+ 	 * route.url("/", function(){ loadFILE(selector, file) })
+	 * or
+ 	 * route.get("/", function(){ loadFILE(selector, file) })
+	 */
+	</script>
+  </body>
+</html>
