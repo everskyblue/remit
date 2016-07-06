@@ -833,9 +833,8 @@
          return this;
      }
 
-     function compruebeEmulatorAccessRequestMethod(is, url, method) {
+     function compruebeEmulatorAccessRequestMethod(is) {
          if(Cookie.first("req_met") == '' && is == false) {
-             document.querySelector('html').innerHTML =  errorAccessMethod(method, url);
              return true;
          }
          return false;
@@ -916,9 +915,10 @@
                          var isManyUrls = many.indexOf('GET') != -1 ? true : false;
                          try {
                              var clear = setInterval(function() {
-                                 if (compruebeEmulatorAccessRequestMethod(isManyUrls, fount, method)) {
+                                 if (compruebeEmulatorAccessRequestMethod(isManyUrls)) {
                                      if (count == 0) {
                                          count = 1;
+                                         document.querySelector('html').innerHTML =  errorAccessMethod(method, fount);
                                          throw new Error("error access method "+method+" not allowed");
                                      }
                                  }
