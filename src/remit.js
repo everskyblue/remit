@@ -2,7 +2,7 @@
  * remit
  * https://github.com/nikeMadrid/remit
  * @author Nike Madrid
- * @version 1.2.1
+ * @version 1.2.2
  * @licence MIT
  */
 
@@ -10,44 +10,57 @@
      Cookie,
      validation;
 
- (function (remits) {
+(function (global) {
+    'use strict'
 
-     /* polyfill */
-     if(!Object.values) {
-            Object.values = function(obj) {
+     var xhr = null;
+
+     if(window.XMLHttpRequest) {
+		xhr = new XMLHttpRequest();
+     }else {
+        try {
+            xhr = new ActiveXObject("Microsoft.XMLHTTP");
+        } catch(e) {
+            console.warn(e);
+        }
+	 }
+
+    /* polyfill */
+    if(!Object.values) {
+        Object.values = function(obj) {
             var vals = [];
             for( var key in obj ) {
-                 if ( obj.hasOwnProperty(key) ) {
-                     vals.push(obj[key]);
-                 }
-             }
-             return vals;
-         }
-     }
+                if ( obj.hasOwnProperty(key) ) {
+                    vals.push(obj[key]);
+                }
+            }
+            return vals;
+        }
+    }
 
-     /**
-      * polyfill
-      * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
-      */
-      if (!Array.prototype.filter) {
-            Array.prototype.filter = function(fun/*, thisArg*/) {
-                'use strict';
+    /**
+     * polyfill
+     * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
+     */
+    if (!Array.prototype.filter) {
+        Array.prototype.filter = function(fun/*, thisArg*/) {
+            'use strict';
 
             if (this === void 0 || this === null) {
                 throw new TypeError();
             }
 
-             var t = Object(this);
-             var len = t.length >>> 0;
-             if (typeof fun !== 'function') {
-                 throw new TypeError();
-             }
+            var t = Object(this);
+            var len = t.length >>> 0;
+            if (typeof fun !== 'function') {
+                throw new TypeError();
+            }
 
-             var res = [];
-             var thisArg = arguments.length >= 2 ? arguments[1] : void 0;
-             for (var i = 0; i < len; i++) {
-                 if (i in t) {
-                     var val = t[i];
+            var res = [];
+            var thisArg = arguments.length >= 2 ? arguments[1] : void 0;
+            for (var i = 0; i < len; i++) {
+                if (i in t) {
+                    var val = t[i];
                     if (fun.call(thisArg, val, i, t)) {
                         res.push(val);
                     }
@@ -56,7 +69,7 @@
 
             return res;
         };
-     }
+    }
 
      /* global regex */
      var globalRgx = /{([0-9a-zA-Z_\+\-%\:]+)}/g,
@@ -83,7 +96,6 @@
       * @description
       * define a "file" module where is create in a dir specificity
       */
-
      function module(m, o) {
          try {
              if (!module.register.file[m[0]]) {
@@ -126,6 +138,7 @@
      /**
       * @param {String} str
       * @param {String} rpl
+      * @return String
       */
      function pregQuote(str, rpl) {
          if(str.match(/\//g) !== null) {
@@ -147,14 +160,14 @@
      }
 
      /**
-      * @return {Array}
+      * @return Array
       */
      function infoHTTP() {
          var m;
          var filename  = '';
          var rgxIndex = /\/(.*?)\.[html|php]*/i;
          if(rgxIndex.test(_SERVER.path) && (m = _SERVER.path.match(rgxIndex)) ) {
-             filename = m[0].substr(0);
+             filename = m[0].substr(1);
              _SERVER.path = _SERVER.path.replace(filename, '');
          }
          _SERVER.filename = (filename != '') ? filename.substr(1) : filename;
@@ -197,19 +210,19 @@
                      '<p>code: 404</p><p>type error: page not fount</p><div style="display:flex;">urls:<p class="urls"> ^'+ urls.join('<br>^').replace(/[\\]|\/\?/g, function(v) { return '' }) + '</p></div></div></main></body></html>';
      }
 
-     /**
- 	 * @param {Function|Objec}} obj
- 	 * @param {Array} args
- 	 */
- 	function renderer(obj, args) {
- 		var propertyExists = Object.prototype.hasOwnProperty;
- 		if(propertyExists.call(obj, 'render')) {
- 			if(propertyExists.call(obj, 'middleware')) { }
- 			obj.render.apply(this, args);
- 		}else {
- 			obj.apply(this, args);
- 		}
- 	}
+    /**
+	 * @param {Function|Objec}} obj
+	 * @param {Array} args
+	 */
+	function renderer(obj, args) {
+		var propertyExists = Object.prototype.hasOwnProperty;
+		if(propertyExists.call(obj, 'render')) {
+			if(propertyExists.call(obj, 'middleware')) { }
+			obj.render.apply(this, args);
+		}else {
+			obj.apply(this, args);
+		}
+	}
 
      /**
       * define modules
@@ -221,7 +234,8 @@
       */
      function captureRgx(url, obj) {
 
-         var regex_group = /\(\?\P\<(.*)?\>(.*)?\)/g;
+         var regex_group = /\(\?\P\<(.*)?\>(.*)?\)/g,
+             matches;
 
          if (regex_group.test(url) && (matches = /\(\?\P\<(.*)?\>(.*)?\)/g.exec(url))) {
 
@@ -267,46 +281,54 @@
          return express;
      };
 
-     /**
- 	 * @type validation
- 	 * @public
- 	 * @description
- 	 * validation form
- 	 */
- 	module(['/lib/validator/validation.js', 'validation'], function(input, validator) {
+     module(['/lib/http/response.js', 'response'], Response);
+     module(['/lib/http/response.js', 'response'], Response);
+     module(['/lib/routing/route.js', 'route'], Route);
+     module(['/lib/routing/router.js', 'router'], Router);
+     module(['/lib/routing/dispatch.js', 'dispatch'], dispatch);
+     module(['/lib/winStorage/localData.js', 'LSStorage'], LSStorage);
+     module(['/lib/remit.js', 'remit'], remit);
 
- 		var self = this;
+    /**
+	 * @type validation
+	 * @public
+	 * @description
+	 * validation form
+	 */
+	module(['/lib/validator/validation.js', 'validation'], function(input, validator) {
 
- 		/* message errors */
- 		var msg = {
- 		    'max': 'max value {max} large {user_max}',
- 		    'min': 'min value {min} large {user_max}',
- 		    'required': 'input is required'
- 		};
+		 var self = this;
 
- 		/* validation required in max and min value */
- 		var values = {
- 		    max: [],
- 		    min: []
- 		};
+		 /* message errors */
+		 var msg = {
+		     'max': 'max value {max} large {user_max}',
+		     'min': 'min value {min} large {user_max}',
+		     'required': 'input is required'
+		 };
 
- 		var node = document.createElement('p');
- 		node.setAttribute('class', 'error');
+		 /* validation required in max and min value */
+		 var values = {
+		     max: [],
+		     min: []
+		 };
 
- 		/**
- 		 * @param {String} key
- 		 * @param {String} tr
- 		 * @param {String} tr2
- 		 * @return {String}
- 		 */
- 		var showMsg = function(key, tr, tr2) {
- 		    if(Object.prototype.hasOwnProperty.call(msg, key)) {
- 		        return msg[key].replace(/\{[max|min]*\}/g, tr).replace('{user_max}', tr2);
- 		    }
- 		    return '';
- 		 }
+		 var node = document.createElement('p');
+		 node.setAttribute('class', 'error');
 
-		 this.errors = [];
+		 /**
+		  * @param {String} key
+		  * @param {String} tr
+		  * @param {String} tr2
+		  * @return {String}
+		  */
+		 var showMsg = function(key, tr, tr2) {
+		    if(Object.prototype.hasOwnProperty.call(msg, key)) {
+		        return msg[key].replace(/\{[max|min]*\}/g, tr).replace('{user_max}', tr2);
+		    }
+		    return '';
+		 }
+
+	     this.errors = [];
 
          this.contextForm = typeof input == 'object' ? input : document.querySelector(input);
 
@@ -314,203 +336,188 @@
             throw 'context in null';
          }
 
- 		 /**
- 	      * @param {String} key
- 	      * @param {Boolean} bool
- 	      */
- 	     this.setError = function(key, bool) {
- 	         this.errors[key] = bool;
- 	     }
+		 /**
+	      * @param {String} key
+	      * @param {Boolean} bool
+	      */
+	     this.setError = function(key, bool) {
+	         this.errors[key] = bool;
+	     }
 
- 	    /**
- 	     * @param {Object} validator
- 	     */
- 	     this.prepare = function(validator) {
+	    /**
+	     * @param {Object} validator
+	     */
+	     this.prepare = function(validator) {
+	         var inputs = Object.keys(validator);
+	         for (var name in inputs) {
+	             this.invoke(inputs[name], validator[inputs[name]]);
+	         }
+	     }
 
- 	         var inputs = Object.keys(validator);
+	     /**
+	      * invoke methods for rules
+	      * @param {String} name
+	      * @param {Array} rules
+	      */
+         this.invoke = function(name, rules) {
+             var f = rules.split('|').map(function(item) {
+                 if(/\d+/g.test(item)) {
 
- 	         for (var name in inputs) {
- 	             this.invoke(inputs[name], validator[inputs[name]]);
- 	         }
- 	     }
+                     var type = item.match(/\D+/g)[0].replace(/\:/g, '');
+                     var rule_value = item.match(/\d+/g)[0];
+                     var func = self[type];
+                     if (type == 'min') {
+                         values.min[name] = rule_value;
+                     }else if (type == 'max') {
+                         values.max[name] = rule_value;
+                     }
 
- 	    /**
- 	     * invoke methods for rules
- 	     * @param {String} name
- 	     * @param {Array} rules
- 	     */
- 	     this.invoke = function(name, rules) {
- 	         var f = rules.split('|').map(function(item) {
- 	             if(/\d+/g.test(item)) {
+                    if(typeof func == 'function') {
+                    func.call(self, document.querySelector('input[name="'+name+'"]'), rule_value);
+                    }
 
- 	                 var type = item.match(/\D+/g)[0].replace(/\:/g, '');
- 	                 var rule_value = item.match(/\d+/g)[0];
- 	                 var func = self[type];
- 	                 if (type == 'min') {
- 	                     values.min[name] = rule_value;
- 	                 }else if (type == 'max') {
- 	                     values.max[name] = rule_value;
- 	                 }
+                }else {
+                    var func = self[item];
+                    if (typeof func == 'function') {
+                        func.call(self, document.querySelector('input[name="'+name+'"]'));
+                    }
+                }
 
- 	                 if(typeof func == 'function') {
- 	                     func.call(self, document.querySelector('input[name="'+name+'"]'), rule_value);
- 	                 }
+            });
+         }
 
- 	             }else {
- 	                 var func = self[item];
- 	                 if (typeof func == 'function') {
- 	                     func.call(self, document.querySelector('input[name="'+name+'"]'));
- 	                 }
- 	             }
+	     /**
+	      * @param {HTMLElement} input
+	      */
+	     this.required = function(input) {
+	         if (typeof input == 'object') {
+	             this.isSubmit(input);
+	         }
+	     }
 
- 	         });
- 	     }
+	     /**
+	      * @param {HTMLElement} input
+	      * @param {Number} rule_value
+	      */
+	     this.max = function(input, rule_value) {
+	         if (input) {
+	             input.addEventListener('change', function(e) {
+	                 var target = e.target;
+					 var error = function (c) {
+							 c.setError(target.name, true);
+							 node.textContent = showMsg('max', rule_value, target.value.length);
+							 input.parentNode.insertBefore(node, input);
+					 }
 
- 	    /**
- 	     * @param {HTMLElement} input
- 	     */
- 	     this.required = function(input) {
- 	         if (typeof input == 'object') {
- 	             this.isSubmit(input);
- 	         }
- 	     }
+	                 for (var name in values.max) {
+	                     if ( target.name == name ) {
+							 if (values.min.length > 0) {
+								 if( target.value.length > rule_value ) {
+									 error(self);
+		                         }else {
+		                             if (target.value.length >= values.min[name]) {
+		                                 self.setError(name, false);
+		                             }
+		                         }
+							 }else {
+								 if( target.value.length > rule_value ) {
+									 error(self);
+								}else {
+									 if (target.value.length <= rule_value) {
+										 self.setError(name, false);
+									 }
+								}
+							}
+	                    }
+	                }
+	            });
+	        }
+	    }
 
- 	    /**
- 	     * @param {HTMLElement} input
- 	     * @param {Number} rule_value
- 	     */
- 	     this.max = function(input, rule_value) {
- 	         if (input) {
- 	             input.addEventListener('change', function(e) {
- 	                 var target = e.target;
- 					 var error = function (c) {
- 							 c.setError(target.name, true);
+	     /**
+	      * @param {HTMLElement} input
+	      * @param {Number} rule_value
+	      */
+	     this.min = function(input, rule_value) {
+	         if (input) {
+	             input.addEventListener('change', function(e) {
+	                 var target = e.target;
+					 var error = function (c) {
+							 c.setError(target.name, true);
+							 node.textContent = showMsg('min', rule_value, target.value.length);
+							 input.parentNode.insertBefore(node, input);
+					 }
 
- 							 node.textContent = showMsg('max', rule_value, target.value.length);
+					 for (var name in values.min) {
+						if (target.name == name) {
+							if ( values.max.length > 0 ) {
+								if( target.value.length < rule_value ) {
+									error(this);
+								}else {
+									if ((target.value.length >= rule_value) && (target.value.length <= values.max[name])) {
+										self.setError(name, false);
+									}
+								}
+							}else {
+								if( target.value.length < rule_value ) {
+									error(self);
+								}else {
+									if (target.value.length >= rule_value) {
+										self.setError(name, false);
+									}
+								}
+							}
+						}
+	                 }
+	             });
+	         }
+	     }
 
- 							 input.parentNode.insertBefore(node, input);
- 					 }
-
- 	                 for (var name in values.max) {
- 	                     if ( target.name == name ) {
- 							 if (values.min.length > 0) {
- 								 if( target.value.length > rule_value ) {
- 									 error(self);
- 		                         }else {
- 		                             if (target.value.length >= values.min[name]) {
- 		                                 self.setError(name, false);
- 		                             }
- 		                         }
- 							 }else {
- 								 if( target.value.length > rule_value ) {
- 									 error(self);
-  								}else {
-  									 if (target.value.length <= rule_value) {
-  										 self.setError(name, false);
-  									 }
-  								}
- 							}
- 	                    }
- 	                }
- 	            });
- 	        }
- 	    }
-
- 	     /**
- 	      * @param {HTMLElement} input
- 	      * @param {Number} rule_value
- 	      */
- 	     this.min = function(input, rule_value) {
- 	         if (input) {
- 	             input.addEventListener('change', function(e) {
- 	                 var target = e.target;
-
- 					 var error = function (c) {
-  							 c.setError(target.name, true);
-
-  							 node.textContent = showMsg('min', rule_value, target.value.length);
-
-  							 input.parentNode.insertBefore(node, input);
- 					 }
-
- 					 for (var name in values.min) {
- 						if (target.name == name) {
- 							if ( values.max.length > 0 ) {
- 								if( target.value.length < rule_value ) {
- 									error(this);
- 								}else {
- 									if ((target.value.length >= rule_value) && (target.value.length <= values.max[name])) {
- 										self.setError(name, false);
- 									}
- 								}
- 							}else {
- 								if( target.value.length < rule_value ) {
- 									error(self);
- 								}else {
- 									if (target.value.length >= rule_value) {
- 										self.setError(name, false);
- 									}
- 								}
- 							}
- 						}
- 	                 }
- 	             }) ;
- 	         }
- 	     }
-
- 	     /**
- 	      * @param {HTMLElement} input for default in null
- 	      * @return validation
- 	      */
- 	     this.isSubmit = function(input) {
+	     /**
+	      * @param {HTMLElement} input for default in null
+	      * @return validation
+	      */
+	     this.isSubmit = function(input) {
              input = input || null;
- 	         this.contextForm.addEventListener('submit', function(e) {
+	         this.contextForm.addEventListener('submit', function(e) {
+	             if (input !== null && input.value.length == '') {
+                        self.setError('required_' + input.name, true);
+                        node.textContent = showMsg('required');
+                        input.parentNode.insertBefore(node, input);
+                        e.preventDefault();
+	             }else if (input !== null && input.value.length !== '') {
+					 self.setError('required_' + input.name, false);
+				 }
 
- 	             if (input !== null && input.value.length == '') {
+	             var filterErrors = Object.values(this.errors).filter(function(item) {
+	                 return item == true;
+	             });
 
- 					 self.setError('required_' + input.name, true);
+	             if (filterErrors.length > 0) {
+	                 e.preventDefault();
+	             }
 
- 	                 node.textContent = showMsg('required');
+	         });
+	         return this;
+	     }
 
- 	                 input.parentNode.insertBefore(node, input);
+	     /**
+	      * @return {Array}
+	      */
+	     this.getErrors = function() {
+	         return this.errors;
+	     }
 
- 	                 e.preventDefault();
- 	             }else if (input !== null && input.value.length !== '') {
- 					 self.setError('required_' + input.name, false);
- 				 }
+		 this.prepare(validator);
 
- 	             var filterErrors = Object.values(this.errors).filter(function(item) {
- 	                 return item == true;
- 	             })
-
- 	             if (filterErrors.length > 0) {
- 	                 e.preventDefault();
- 	             }
-
- 	         });
-
- 	         return this;
- 	     }
-
- 	     /**
- 	      * @return {Array}
- 	      */
- 	     this.getErrors = function() {
- 	         return this.errors;
- 	     }
-
- 		 this.prepare(validator);
-
- 		 return this;
- 	});
+		 return this;
+	});
 
      var validator = validation = module.import('/lib/validator/validation.js', 'validation');
 
      /**
       * @type cookie
       * @private
-      * @description
-      *
       */
      module(['/lib/winStorage/cookie.js', 'cookie'], function (name, value, options) {
           Cookie.key = name;
@@ -522,117 +529,208 @@
 
      var cookie = Cookie = module.import('/lib/winStorage/cookie.js', 'cookie');
 
-          /**
-           * @param {String} name
-           * @param {String} value
-           * @param {Object} options
-           */
-          cookie.assign = function(name, value, options) {
-              Cookie(name, value, options);
-          }
+     /**
+      * @param {String} name
+      * @param {String} value
+      * @param {Object} options
+      */
+     cookie.assign = function(name, value, options) {
+         Cookie(name, value, options);
+     }
 
-          /**
-           * @param {String} name
-           * @return {String}
-           */
-          cookie.first = function(name) {
-              return Cookie.all()[name] || '';
-          }
+     /**
+      * @param {String} name
+      * @return {String}
+      */
+     cookie.first = function(name) {
+          return Cookie.all()[name] || '';
+     }
 
-          /**
-           * @param {String} name
-           * @param {String} path
-           */
-          cookie.remove = function(name, path){
-              var date = new Date(),
-                  path = path ? 'path='+path+';' : '';
-             date.setTime(date.getTime()-date.getTime());
-             document.cookie = name+'=;'+path+'expires='+date.toUTCString();
-          }
-          /**
-           * @return {Array}
-           */
-          cookie.all = function() {
-              var cookies = document.cookie;
-              var arrCookie = [],
-                  store;
+     /**
+      * @param {String} name
+      * @param {String} path
+     */
+     cookie.remove = function(name, path){
+         var date = new Date(),
+             path = path ? 'path='+path+';' : '';
+         date.setTime(date.getTime()-date.getTime());
+         document.cookie = name+'=;'+path+'expires='+date.toUTCString();
+     }
 
-              var arr = (cookies.indexOf(';') != -1) ? cookies.replace(/\s+/g, '').split(';') : cookies.split('=');
+     /**
+      * @return {Array}
+      */
+     cookie.all = function() {
+         var cookies = document.cookie;
+         var arrCookie = [],
+             store,
+             arr = (cookies.indexOf(';') != -1) ? cookies.replace(/\s+/g, '').split(';') : cookies.split('=');
 
-              if(cookies) {
-                  arr.forEach(function (e, i, a) {
-                      store = (e.indexOf('=') != - 1) ? e.split('=') : arr
-                      arrCookie[store[0]] = store[1];
-                  });
-              }
+         if(cookies) {
+          arr.forEach(function (e, i, a) {
+                 store = (e.indexOf('=') != - 1) ? e.split('=') : arr
+                 arrCookie[store[0]] = store[1];
+             });
+         }
 
-              return arrCookie;
-          }
+         return arrCookie;
+    }
 
-          /**
-           * @param {String} type
-           * @return {number}
-           */
-          cookie.buildAgeCookie = function(type) {
-              var is = type;
-              var timeExpires = 0;
+     /**
+      * @param {String} type
+      * @return {number}
+      */
+     cookie.buildAgeCookie = function(type) {
+         var is = type,
+             timeExpires = 0;
+         if(typeof is == 'number') {
+             timeExpires = type;
+         }else if(is == 'oneYear') {
+             timeExpires = 60*60*24*365;
+         }else if (is == 'oneHour') {
+             timeExpires = 60*60;
+         }
 
-              if(typeof is == 'number') {
-                  timeExpires = type;
-              }else if(is == 'oneYear') {
-                  timeExpires = 60*60*24*365;
-              }else if (is == 'oneHour') {
-                  timeExpires = 60*60;
-              }
+         return timeExpires;
+    }
 
-              return timeExpires;
-          }
+     /**
+      * create cookie
+      */
+     cookie.injectCookie = function() {
+         var construct = Cookie.key+'='+Cookie.value,
+             options = Cookie.options,
+             defaultsOptions = {
+                 path: '/',
+                 domain: '',
+                 age: '',
+                 expires: '',
+                 secure: false
+             };
 
-          /**
-           * create cookie
-           */
-          cookie.injectCookie = function() {
-              var construct = Cookie.key+'='+Cookie.value;
+         for (var name in options) {
+             if (Object.prototype.hasOwnProperty.call(defaultsOptions, name)) {
+                 switch (name) {
+                     case 'path':
+                         construct += ';path='+options[name];
+                         break;
+                     case 'domain':
+                         construct += ';domain='+options[name];
+                         break;
+                     case 'age':
+                         construct += ';max-age='+Cookie.buildAgeCookie(options[name]);
+                         break;
+                     case 'expires':
+                         construct += ';expires='+options[name];;
+                         break;
+                     case 'secure':
+                         construct += ';secure='+options[name];
+                         break;
+                 }
+             }
+         }
 
-              var options = Cookie.options;
+         if(!Cookie.first(Cookie.key)) {
+             document.cookie = construct;
+         }
+     }
 
-              var defaultsOptions = {
-                  path: '/',
-                  domain: '',
-                  age: '',
-                  expires: '',
-                  secure: false
-              };
+     /**
+      * @type class LSSStorage
+      * @param {String} name
+      * @param {String} value
+      * @param {String} type
+      */
+     function LSStorage(name, value, type) {
+         value = (typeof name == 'object') ? name :(function() {var dd = []; return dd[name] = value, dd; }());
+         LSStorage.action(value, type || 'local', 'set');
+     }
 
-              for (var name in options) {
-                  if (Object.prototype.hasOwnProperty.call(defaultsOptions, name)) {
-                      switch (name) {
-                          case 'path':
-                              construct += ';path='+options[name];
-                              break;
-                          case 'domain':
-                              construct += ';domain='+options[name];
-                              break;
-                          case 'age':
-                              construct += ';max-age='+Cookie.buildAgeCookie(options[name]);
-                              break;
-                          case 'expires':
-                              construct += ';expires='+options[name];;
-                              break;
-                          case 'secure':
-                              construct += ';secure='+options[name];
-                              break;
+     /**
+      * @param {String} name
+      * @param {String} value
+      * @param {String} type
+      */
+     LSStorage.set = function (name, value, type) {
+         LSStorage(key, value, type);
+     }
 
-                      }
-                  }
-              }
+     /**
+      * @param {String} name
+      * @param {String} type
+      * @return {String}
+      */
+     LSStorage.get = function(name, type) {
+         return LSStorage.action(name, type || 'local', 'get');
+     }
 
-              if(!Cookie.first(Cookie.key)) {
-                  document.cookie = construct;
-              }
-          }
+     /**
+      * @param {String} name
+      * @param {String} type
+      */
+     LSStorage.remove = function(name, type) {
+         LSStorage.action(name, type || 'local', 'remove');
+     }
 
-     function Request(root) {
+     /**
+      * @param {String} name
+      * @param {String} type
+      * @return {Boolean}
+      */
+     LSStorage.exists = function(name, type) {
+         return LSStorage.action(name, type || 'local', 'exists');
+     }
+
+     /**
+      * @param {String|Object} name
+      * @param {String} typeStorage
+      * @param {String} action
+      * @return {String|Boolean|null}
+      */
+     LSStorage.action = function(value, typeStorage, action) {
+         var executeAction;
+
+		 var exists = function(k) {
+			 if(typeof value == 'string') {
+				 return executeAction[k] ? true : false;
+			 }
+			 return null;
+		 };
+
+		 switch (typeStorage) {
+			 case 'local':
+				 executeAction = localStorage;
+				 break;
+			 case 'session':
+				 executeAction = sessionStorage;
+				 break;
+
+		 }
+
+		 if(action == 'exists') {
+			 return exists(value);
+		 }else if(action == 'get') {
+			 if(typeof value == 'string') {
+				 return executeAction[value] || null;
+			 }
+			 return null;
+		 }else if(action == 'set'){
+			 if(typeof value == 'object') {
+				 for (var name in value) {
+					 if(!exists(name)) {
+						 executeAction[action + 'Item'](name, value[name]);
+					 }
+				 }
+			 }
+		 }else{
+             executeAction[action + 'Item'](value);
+		 }
+     }
+
+     /**
+      * @type class Request
+      */
+     function Request() {
          var http = infoHTTP();
          this.request = {} || [];
 
@@ -677,7 +775,6 @@
          this.getBrowser = function() {
              var explode = [],
                  navi = window.navigator.userAgent.match(/(([\\(](.*?)?[\\)]))/g);
-
              if (navi instanceof Array && navi.length > 0) {
                  explode = navi[0].replace(/\((.*)?\)/g, '$1').split(';');
              }
@@ -772,6 +869,9 @@
          return ['POST', 'PUT', 'PATCH', 'DELETE'].indexOf(m) != -1;
      }
 
+     /**
+      * @type class Response
+      */
      function Response() {
          var http = infoHTTP();
          this.propagation = false;
@@ -794,27 +894,34 @@
             window.history.back();
          }
 
+         /**
+          * @return void
+          */
          this.send = function (req, route) {
              if (req.request.length > 0) {
                  var u = req.request[0];
                  var m = req.request[1];
                  var f = req.request[2];
                  var a = req.request[3];
-
                  route.event.validatable();
-
                  renderer(f, [req, this].concat(a));
-
                  if (Request.isAllNotGet(m)) {
                      window.onbeforeunload = function(e) {
                          Cookie.remove('req_met', ( window.srcStorage || u));
                      }
                  }
-
                  this.propagation = true;
+                 delete window.srcStorage;
+             }else {
+                 if (this.propagation == false && Cookie.first('req_met')) {
+                     Cookie.remove('req_met', ( window.srcStorage || u | http.path));
+                 }
              }
          }
 
+         /**
+          * @return String
+          */
          this.resCookie = function (name) {
              return Cookie.first(name);
          }
@@ -822,6 +929,12 @@
          return this;
      }
 
+     /**
+      * @type class Router
+      * @param {String} method
+      * @param {String} url
+      * @param {Object|Function} func
+      */
      function Router(method, url, func) {
          this.urls = [];
          this.capture = {};
@@ -833,6 +946,12 @@
          return this;
      }
 
+     /**
+      * @param {Boolean} is
+      * @return Boolean
+      * @description
+      * Verify if there the cookie and a method where to send the form
+      */
      function compruebeEmulatorAccessRequestMethod(is) {
          if(Cookie.first("req_met") == '' && is == false) {
              return true;
@@ -840,6 +959,11 @@
          return false;
      }
 
+     /**
+      * @return Boolean
+      * @description
+      * Verify if there the cookie and run another method other than get
+      */
      function emulatorAccessMethod() {
          if ( (Cookie.first('req_met') != '' && Cookie.first('req_met') != 'false') ) {
              return true;
@@ -847,6 +971,13 @@
          return false;
      }
 
+     /**
+      * @param {validation|Object} validator
+      * @param {HTMLElement} selector
+      * @param {String} u
+      * @description
+      * validates the form to run the following request adding a cookie first
+      */
      function eventForm(validator, selector, u) {
          if (selector == null) { console.warn('context in null'); return; }
          var g = (validator instanceof Array) ? new validation(validator[0], validator[1]) : validator;
@@ -866,12 +997,15 @@
                  });
              }else {
                  Cookie('req_met', false, {
- 					path: u
- 				});
+    				path: u
+    			 });
              }
          });
      }
 
+     /**
+      * @param {Array} context Router
+      */
      function dispatch(context) {
          if(typeof context == "object") {
              var self = this;
@@ -935,15 +1069,17 @@
 
                  }
              });
-
              setTimeout(response.send.bind(response, request, self), 10);
-
              if (notFount) {
                  document.querySelector('html').innerHTML = pageNotFount(urls);
              }
          }
      }
 
+     /**
+      * @param {String} url
+      * @return Array|Boolean
+      */
      dispatch.matches = function(url) {
          var m = null;
          if ( (m = url.exec(infoHTTP().path)) ) {
@@ -960,72 +1096,131 @@
          return false;
      }
 
+     /**
+      * @override
+      * @param {String} url
+      */
      Router.prototype.setUrl = function(url) {
          this.url = url;
      }
 
+     /**
+      * @param {String} m
+      */
      Router.prototype.setMethod = function(m) {
          this.method = m;
      }
 
+     /**
+      * @param {Object|Function} c
+      */
      Router.prototype.setFunc = function(c) {
          this.func = c;
      }
 
+     /**
+      * @return this
+      */
      Router.prototype.matchUrl = function() {
          this.setUrl(captureRgx(this.getUrl(), this));
          return this;
      }
 
+     /**
+      * @return String
+      */
      Router.prototype.getUrl = function() {
          return this.url;
      }
 
+     /**
+      * @return String
+      */
      Router.prototype.getMethod = function() {
          return this.method;
      }
 
+     /**
+      * @return Object|Function
+      */
      Router.prototype.getFunc = function() {
          return this.func;
      }
 
-     /**/
+     /**
+      * @type class Route
+      */
      function Route() { return this; };
 
+     /**
+      * @param {String} url
+      * @param {Function} func
+      */
      Route.prototype.group = function(url, func) {
          this.groupUrl = url;
-
          func.call(this, this);
      }
 
+     /**
+      * @param {String} p
+      * @param {Object|Function} o
+      */
      Route.prototype.get = function(p, o) {
          this.controller("GET", p, o);
      }
 
+     /**
+      * @param {String} p
+      * @param {Object|Function} o
+      */
      Route.prototype.post = function(p, o) {
          this.controller("POST", p, o);
      }
 
+     /**
+      * @param {String} p
+      * @param {Object|Function} o
+      */
      Route.prototype.put = function(p, o) {
          this.controller("PUT", p, o);
      }
 
+     /**
+      * @param {String} p
+      * @param {Object|Function} o
+      */
      Route.prototype.patch = function(p, o) {
          this.controller("PATCH", p, o);
      }
 
+     /**
+      * @param {String} p
+      * @param {Object|Function} o
+      */
      Route.prototype.delete = function(p, o) {
          this.controller("DELETE", p, o);
      }
 
+     /**
+      * @param {String} p
+      * @param {Object|Function} o
+      */
      Route.prototype.options = function(p, o) {
          this.controller("OPTIONS", p, o);
      }
 
+     /**
+      * @param {String} m
+      * @param {String} url
+      * @param {Object|Function} o
+      */
      Route.prototype.controller = function(m, url, o) {
          context.push( new Router(m, this.groupUrl || '' + url, o).matchUrl() );
      }
 
+     /**
+      * @type class remit
+      */
      remit = function() {
          this.event = {};
          this.collection = {};
@@ -1035,6 +1230,30 @@
 
          this.run = function() {
              return dispatch.bind(this)(context);
+         }
+
+         this.loadFile = function (selector, file, callback) {
+             var rgx_file = /(.*?)\.([html|php|json|xml|txt]+)/i;
+             if (typeof file == 'function') {
+                 callback = file;
+             }
+             if (rgx_file.test(selector)) {
+                 file = selector;
+                 selector = null;
+             }
+             if (selector) {
+                 selector = (typeof selector == 'object') ? selector : (selector.indexOf('#') != -1 || selector.indexOf('.') != -1 ? document.querySelector(selector) : null);
+                 if ( selector == null ) {
+                     throw 'element in null';
+                 }
+             }
+             xhr.open('GET', file);
+             xhr.onreadystatechange = function (e) {
+                 if (xhr.readyState == 4) {
+                     return (callback && callback.call(xhr, xhr.responseText) || (selector && (selector.innerHTML = xhr.responseText, selector)), void 1 );
+                 }
+             }
+             xhr.send();
          }
 
          return this;
