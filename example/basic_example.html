@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>basic example</title>
+</head>
+<body>
+
+    <div class="output"></div>
+
+    <script src="/src/remit.min.js"></script>
+
+    <script>
+        var add = document.querySelector('.output');
+        var route = new remit();
+
+        route.get('/', function(req, res) {
+            add.innerHTML = 'home';
+        });
+    </script>
+</body>
+</html>

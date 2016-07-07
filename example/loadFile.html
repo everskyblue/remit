@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>load file</title>
+</head>
+<body>
+
+    <div class="output"></div>
+
+    <script src="/src/remit.min.js"></script>
+
+    <script>
+        var add = document.querySelector('.output');
+        var route = new remit();
+
+        route.get('/user/register', function (req, res) {
+            route.loadFile('/example.html', function (text) {
+                add.innerHTML = text;
+            });
+            //or... route.loadFile('.output', '/example.html')
+        });
+    </script>
+</body>
+</html>
