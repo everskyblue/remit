@@ -2,7 +2,7 @@
  * remit
  * https://github.com/nikeMadrid/remit
  * @author Nike Madrid
- * @version 1.2.2
+ * @version 1.2.3
  * @licence MIT
  */
 
@@ -24,7 +24,7 @@
         } catch(e) {
             console.warn(e);
         }
-	 }
+     }
 
     /* polyfill */
     if(!Object.values) {
@@ -104,7 +104,7 @@
                  module.register.file[m[0]][m[1]] = o;
              }
          }catch(e){
-             console.log(e)
+             console.warn(e)
          }
      }
 
@@ -179,7 +179,7 @@
      function errorAccessMethod(method, url) {
          return '<!DOCTYPE html>'+
          '<html><head>'+
-             '<title>error access method '+ method +' no allowed</title>'+
+             '<title>error: access method not allowed</title>'+
              '<style>'+
                  '* {margin: 0;padding: 0;box-sizing: border-box;}'+
                  'html, body {background-color: #F1F1F1;}'+
@@ -188,9 +188,9 @@
                  'main > div {width: 1000px;margin: auto;margin-top: 3em;padding: 3em 10px;line-height: 30px;border: 10px solid #ffa2a2;background: white;color: #454545;}'+
              '</style>'+
          '</head><body>'+
-             '<header>Error method ' + method +' not allowed</header>'+
+             '<header>error: access method not allowed</header>'+
              '<main><div>'+
-                     '<p>url: '+ url +'</p><p>method: '+method+'</p><p>type error: errorAccessMethod</p>'+
+                     '<p>url: '+ url +'</p><p>method permitted: '+method+'</p><p>type error: method not allowed</p>'+
              '</div></main></body></html>';
      }
 
@@ -234,12 +234,9 @@
       * regexurlname
       */
      function captureRgx(url, obj) {
-
          var regex_group = /\(\?\P\<(.*)?\>(.*)?\)/g,
              matches;
-
          if (regex_group.test(url) && (matches = /\(\?\P\<(.*)?\>(.*)?\)/g.exec(url))) {
-
              var expression = matches.shift();
              var name = matches.shift();
              var rgx = matches.shift();
@@ -277,7 +274,6 @@
 
              return eval('/'+ quote +'\\/?/');
          }();
-
 
          return express;
      };
@@ -946,7 +942,7 @@
       * Verify if there the cookie and a method where to send the form
       */
      function compruebeEmulatorAccessRequestMethod(is) {
-         if(Cookie.first("req_met") == '' && is == false) {
+         if((Cookie.first("req_met") == '' || Cookie.first("req_met") == 'false')  && is == false) {
              return true;
          }
          return false;
@@ -977,22 +973,26 @@
          g.isSubmit();
          selector.addEventListener('submit', function(ev) {
              var isErrors = Object.values(g.errors).filter(function(item){ return item == true; });
+
+             Object.defineProperty(window, 'srcStorage', {
+                  enumerable: false,
+                  writable: false,
+                  configurable: true,
+                  value: selector.getAttribute('action') || u
+             });
+
              if (isErrors.length == 0) {
-                 Object.defineProperty(window, 'srcStorage', {
-                      enumerable: false,
-                      writable: false,
-                      configurable: true,
-                      value: selector.getAttribute('action') || u
-                 });
-                 Cookie.remove('req_met', ( window.srcStorage ? window.srcStorage : u));
+                 Cookie.remove('req_met', window.srcStorage);
                  Cookie('req_met', Date.now(), {
-                     path: selector.getAttribute('action') || u
+                     path: window.srcStorage
                  });
              }else {
                  Cookie('req_met', false, {
-    				path: u
+    				path: window.srcStorage
     			 });
              }
+
+             //ev.preventDefault()
          });
      }
 
@@ -1011,7 +1011,6 @@
 
              context.forEach(function(v, index,a) {
                  urls.push(v.urls[0]);
-
                  if (Object.keys(v.capture).length>0) {
                      urls[index] = v.urls[0].replace(
                          '([\\'+v.capture.typeCapture+'])',
@@ -1024,18 +1023,15 @@
                      var args = self.m;
                      var callback = v.getFunc();
                      var method = v.getMethod();
-
                      var selector = self.selector = document.querySelector(callback.form);
                      var validatable = self.validatable = callback.validation;
-
                      notFount = false;
-
                      self.collection = v.capture;
 
                      if (Request.isGet(method)) {
                          many.push(method);
                          self.event.validatable = selector && selector.getAttribute('action') || fount ? eventForm.bind(self, validatable, selector, fount) : Function;
-                         if (!emulatorAccessMethod()) {
+                         if (!emulatorAccessMethod() || method == 'OPTIONS') {
                              request.env(fount, method, callback, args);
                          }
                      }else if (Request.isAllNotGet(method))  {
@@ -1046,7 +1042,7 @@
                                      if (count == 0) {
                                          count = 1;
                                          document.querySelector('html').innerHTML =  errorAccessMethod(method, fount);
-                                         throw new Error("error access method "+method+" not allowed");
+                                         throw new Error("Error: access method not allowed");
                                      }
                                  }
 
@@ -1215,7 +1211,9 @@
       * @type class remit
       */
      remit = function() {
-         this.event = {};
+         this.event = {
+             validatable: Function
+         };
          this.collection = {};
          var self = this;
 
