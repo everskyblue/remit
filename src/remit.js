@@ -8,7 +8,8 @@
 
  var remit,
      Cookie,
-     validation;
+     validation,
+     localData;
 
 (function (global) {
     'use strict'
@@ -281,14 +282,6 @@
          return express;
      };
 
-     module(['/lib/http/response.js', 'response'], Response);
-     module(['/lib/http/response.js', 'response'], Response);
-     module(['/lib/routing/route.js', 'route'], Route);
-     module(['/lib/routing/router.js', 'router'], Router);
-     module(['/lib/routing/dispatch.js', 'dispatch'], dispatch);
-     module(['/lib/winStorage/localData.js', 'LSStorage'], LSStorage);
-     module(['/lib/remit.js', 'remit'], remit);
-
     /**
 	 * @type validation
 	 * @public
@@ -373,7 +366,7 @@
                      }
 
                     if(typeof func == 'function') {
-                    func.call(self, document.querySelector('input[name="'+name+'"]'), rule_value);
+                        func.call(self, document.querySelector('input[name="'+name+'"]'), rule_value);
                     }
 
                 }else {
@@ -411,7 +404,7 @@
 
 	                 for (var name in values.max) {
 	                     if ( target.name == name ) {
-							 if (values.min.length > 0) {
+							 if (Object.getOwnPropertyNames(values.min).length > 0) {
 								 if( target.value.length > rule_value ) {
 									 error(self);
 		                         }else {
@@ -450,15 +443,16 @@
 
 					 for (var name in values.min) {
 						if (target.name == name) {
-							if ( values.max.length > 0 ) {
+							if ( Object.getOwnPropertyNames(values.max).length > 0 ) {
 								if( target.value.length < rule_value ) {
-									error(this);
+									error(self);
 								}else {
 									if ((target.value.length >= rule_value) && (target.value.length <= values.max[name])) {
 										self.setError(name, false);
 									}
 								}
 							}else {
+
 								if( target.value.length < rule_value ) {
 									error(self);
 								}else {
@@ -484,12 +478,11 @@
                         self.setError('required_' + input.name, true);
                         node.textContent = showMsg('required');
                         input.parentNode.insertBefore(node, input);
-                        e.preventDefault();
 	             }else if (input !== null && input.value.length !== '') {
 					 self.setError('required_' + input.name, false);
 				 }
 
-	             var filterErrors = Object.values(this.errors).filter(function(item) {
+	             var filterErrors = Object.values(self.errors).filter(function(item) {
 	                 return item == true;
 	             });
 
@@ -641,9 +634,9 @@
       * @param {String} value
       * @param {String} type
       */
-     function LSStorage(name, value, type) {
+     localData = function localData(name, value, type) {
          value = (typeof name == 'object') ? name :(function() {var dd = []; return dd[name] = value, dd; }());
-         LSStorage.action(value, type || 'local', 'set');
+         localData.action(value, type || 'local', 'set');
      }
 
      /**
@@ -651,8 +644,8 @@
       * @param {String} value
       * @param {String} type
       */
-     LSStorage.set = function (name, value, type) {
-         LSStorage(key, value, type);
+     localData.set = function (name, value, type) {
+         localData(key, value, type);
      }
 
      /**
@@ -660,16 +653,16 @@
       * @param {String} type
       * @return {String}
       */
-     LSStorage.get = function(name, type) {
-         return LSStorage.action(name, type || 'local', 'get');
+     localData.get = function(name, type) {
+         return localData.action(name, type || 'local', 'get');
      }
 
      /**
       * @param {String} name
       * @param {String} type
       */
-     LSStorage.remove = function(name, type) {
-         LSStorage.action(name, type || 'local', 'remove');
+     localData.remove = function(name, type) {
+         localData.action(name, type || 'local', 'remove');
      }
 
      /**
@@ -677,8 +670,8 @@
       * @param {String} type
       * @return {Boolean}
       */
-     LSStorage.exists = function(name, type) {
-         return LSStorage.action(name, type || 'local', 'exists');
+     localData.exists = function(name, type) {
+         return localData.action(name, type || 'local', 'exists');
      }
 
      /**
@@ -687,7 +680,7 @@
       * @param {String} action
       * @return {String|Boolean|null}
       */
-     LSStorage.action = function(value, typeStorage, action) {
+     localData.action = function(value, typeStorage, action) {
          var executeAction;
 
 		 var exists = function(k) {
@@ -858,7 +851,7 @@
       * @return {Boolean}
       */
      Request.isGet = function(m) {
-         return m == 'GET';
+         return ['GET', 'OPTIONS'].indexOf(m) != -1;
      }
 
      /**
@@ -866,7 +859,7 @@
       * @return {Boolean}
       */
      Request.isAllNotGet = function(m) {
-         return ['POST', 'PUT', 'PATCH', 'DELETE'].indexOf(m) != -1;
+         return ['POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'].indexOf(m) != -1;
      }
 
      /**
@@ -1039,7 +1032,7 @@
 
                      self.collection = v.capture;
 
-                     if (Request.isGet(method) || 'OPTIONS' == method) {
+                     if (Request.isGet(method)) {
                          many.push(method);
                          self.event.validatable = selector && selector.getAttribute('action') || fount ? eventForm.bind(self, validatable, selector, fount) : Function;
                          if (!emulatorAccessMethod()) {
@@ -1258,6 +1251,14 @@
 
          return this;
      }
+
+     module(['/lib/http/response.js', 'response'], Response);
+     module(['/lib/http/response.js', 'response'], Response);
+     module(['/lib/routing/route.js', 'route'], Route);
+     module(['/lib/routing/router.js', 'router'], Router);
+     module(['/lib/routing/dispatch.js', 'dispatch'], dispatch);
+     module(['/lib/winStorage/localData.js', 'localData'], localData);
+     module(['/lib/remit.js', 'remit'], remit);
 
      return remit;
 
