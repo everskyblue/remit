@@ -991,8 +991,6 @@
     				path: window.srcStorage
     			 });
              }
-
-             //ev.preventDefault()
          });
      }
 
