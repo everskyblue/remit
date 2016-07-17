@@ -1039,9 +1039,10 @@ var xhr = null;
             /**
              * @param {String} str
              * @param {Object} data
+             * @return detached
              */
             this.viewCompileData = function (str, data) {
-                self.detached.compile(str, data);
+                return self.detached.compile(str, data);
             };
 
             /**
