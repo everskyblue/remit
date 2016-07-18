@@ -12,14 +12,17 @@
 
     <script>
         var add = document.querySelector('.output');
-        var route = new remit();
+        var app = new remit();
+        var route = new app.Route();
 
         route.get('/user/register', function (req, res) {
-            route.loadFile('/example.html', function (text) {
+            app.loadFile('/example.html', function (text) {
                 add.innerHTML = text;
             });
             //or... route.loadFile('.output', '/example.html')
         });
+
+        app.run();
     </script>
 </body>
 </html>

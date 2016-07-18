@@ -24,7 +24,8 @@
 
     <script>
         var add = document.querySelector('.output');
-        var route = new remit();
+        var app = new remit();
+        var route = new app.Route();
 
         route.get('/user/register', {
             form: '#register',
@@ -37,9 +38,11 @@
             }
         });
 
-        route.post('/user/valiate', function(req, res) {
+        route.post('/user/validate', function(req, res) {
             add.innerHTML = 'validate user!';
         });
+
+        app.run();
     </script>
 </body>
 </html>

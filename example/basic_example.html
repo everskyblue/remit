@@ -12,11 +12,14 @@
 
     <script>
         var add = document.querySelector('.output');
-        var route = new remit();
+        var app = new remit();
+        var route = new app.Route();
 
         route.get('/', function(req, res) {
             add.innerHTML = 'home';
         });
+
+        app.run();
     </script>
 </body>
 </html>

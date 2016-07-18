@@ -1,0 +1,19 @@
+{% extends view/layout.html %}
+
+{% block header %}
+
+    <h1>header</h1>
+
+    {% include view/inc.html %}
+
+{% endblock %}
+
+{% block content %}
+
+    <h1>{{ raw | gen }}</h1>
+
+    <p>{{ json | user }}</p>
+
+    <p>{{ escape | st }}</p>
+
+{% endblock %}
