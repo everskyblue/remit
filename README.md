@@ -66,8 +66,12 @@ create groups
 
 ```javascript
 route.group('/user', function(route) {
-    route.post('/login', function() {
+    route.get('/login', function() {
     	console.log('login')
+    })
+    
+    route.get('/register', function() {
+    	console.log('register')
     })
 })
 ```
