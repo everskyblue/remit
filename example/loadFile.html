@@ -16,7 +16,7 @@
         var route = new app.Route();
 
         route.get('/user/register', function (req, res) {
-            app.loadFile('/example.html', function (text) {
+            app.loadFile('view/example.html', function (text) {
                 add.innerHTML = text;
             });
             //or... route.loadFile('.output', '/example.html')
