@@ -5,7 +5,8 @@ remit an easy way to manage routes with javascript supports optencion of paramet
 ##routes
 an example of how to use a route
 ```javascript
-var route = new remit()
+var app = new remit()
+var route = new app.Route()
 route.get('/', function(req, res) {
     alert('home')
 })
@@ -21,11 +22,11 @@ route.get('/user/{id}', function(req, res, id){
 
 among the options of this url:
 
-- **/ user/{name: string}**
+- **/ user/{name}**
 - **/ user/{id: number}**
+- **/ user/{name: string}**
 - **/ user/{name: upper}**
 - **/ user/{name: lower}**
-- **/ user/{name}**
 - **/ user/(?P&lt;id&gt;[\d+|\D+|otherOptions])**
 
 if you want to submit a form by post method and validate the second parameter an object is passed
@@ -34,7 +35,7 @@ if you want to submit a form by post method and validate the second parameter an
 route.get('/user/login', {
 	form: '#idForm',
 	validation: ['#idForm', {'name': 'required', 'pass': 'required'}],
-    // or new validation('#idForm', {'name': 'required', 'pass': 'required'})
+    // or new app.validation('#idForm', {'name': 'required', 'pass': 'required'})
 	render: function(req, res) {
 		console.log('via get');
    }
@@ -54,11 +55,31 @@ or do so through the method options
 route.options('/user/login', {
 	form: '#idForm',
 	validation: ['#idForm', {'name': 'required', 'pass': 'required'}],
-    // or new validation('#idForm', {'name': 'required', 'pass': 'required'})
+    // or new app.validation('#idForm', {'name': 'required', 'pass': 'required'})
 	render: function(req, res) {
 		console.log('via get')
    }
 }
+```
+
+create groups
+
+```javascript
+route.group('/user', function(route) {
+    route.post('/login', function() {
+    	console.log('login')
+    })
+})
+```
+
+render and pass data to the view 
+
+```javascript
+route.get('/view', function(req, res) {
+	res.view('index.html', {
+	    welcome: 'welcome!'
+	})
+})
 ```
 
 routes method
@@ -81,9 +102,9 @@ options available to validate
 - **max:max_value**
 
 ```javascript
-var validator = new validation('#idForm', {
+var validator = new app.validation('#idForm', {
 	'inputName': 'required|min:6|max:20'
-}).isSubmit()
+}).ifNotSubmit()
 ```
 
 ***
@@ -93,31 +114,31 @@ var validator = new validation('#idForm', {
 using localData function to store data, by default uses the localStorage, you can specify that you want to use **session** specifying in the last parameter
 
 ```javascript
-localData('key', 'value');
+app.localData('key', 'value');
 ```
 or  
 
 ```javascript
-localData.set('key', 'value');
+app.localData.set('key', 'value');
 ```
 
 
 to add session
 
 ```javascript
-localData('key', 'value', 'session');
+app.localData('key', 'value', 'session');
 ```
 
 the same to obtain or remove
 
 ```javascript
-localData.delete('key' /*, null or 'session'*/);
+app.localData.delete('key' /*, null or 'session'*/);
 ```
 
 get value
 
 ```javascript
-localData.get('key' /*, null or 'session'*/);
+app.localData.get('key' /*, null or 'session'*/);
 ```
 
 ##Cookie
@@ -125,21 +146,21 @@ localData.get('key' /*, null or 'session'*/);
 add Cookie
 
 ```javascript
-Cookie('key', 'value'/*, options {} */);
+app.Cookie('key', 'value'/*, options {} */);
 ```
 
 or
 
 ```javascript
-Cookie.assign('key', 'value'/*, options {} */);
+app.Cookie.assign('key', 'value'/*, options {} */);
 ```
 
 static methods
 ```javascript
-Cookie.assign('key', 'value'/*, options {}  */);
-Cookie.all(); // return an array
-Cookie.delete('key');
-Cookie.get ('key') // return a string
+app.Cookie.assign('key', 'value'/*, options {}  */);
+app.Cookie.all(); // return an array
+app.Cookie.delete('key');
+app.Cookie.get ('key') // return a string
 ```
 
 >when the browser is reloaded, methods post, put, patch and delete is executed once
