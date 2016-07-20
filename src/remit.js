@@ -1193,7 +1193,7 @@ var xhr = null;
          * @param {Object|Function} o
          */
         this.Route.prototype.controller = function(m, url, o) {
-            context.push( new self.Router(m, this.groupUrl || '' + url, o).matchUrl() );
+            context.push( new self.Router(m, (this.groupUrl || '') + url, o).matchUrl() );
         };
 
         /**
@@ -1226,7 +1226,7 @@ var xhr = null;
          */
         function eventForm(validator, selector, u) {
             if (selector == null) { console.warn('context in null'); return; }
-            var g = (validator instanceof Array) ? new validation(validator[0], validator[1]) : validator;
+            var g = (validator instanceof Array) ? new self.validation(validator[0], validator[1]) : validator;
             g.isSubmit();
             selector.addEventListener('submit', function(ev) {
                 var isErrors = Object.values(g.errors).filter(function(item){ return item == true; });
