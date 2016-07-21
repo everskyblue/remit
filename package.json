@@ -1,0 +1,28 @@
+{
+  "name": "remit",
+  "version": "1.3.4",
+  "description": "remit an easy way to manage routes with javascript supports optencion of parameters, with the latest version released can validate a form and simulate methods such as GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  "main": "src/remit.js",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nikeMadrid/remit.git"
+  },
+  "keywords": [
+    "remit",
+    "route",
+    "routing",
+    "router"
+  ],
+  "author": "Nike Madrid",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nikeMadrid/remit/issues"
+  },
+  "homepage": "https://github.com/nikeMadrid/remit#readme"
+}
