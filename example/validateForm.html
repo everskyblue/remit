@@ -24,7 +24,8 @@
 
     <script>
         var add = document.querySelector('.output');
-        var route = new remit();
+        var app = new remit();
+        var route = new app.Route();
 
         route.get('/user/register', {
             form: '#register',
@@ -56,7 +57,12 @@
         });
         */
 
+<<<<<<< HEAD
         route.run();
+=======
+
+        app.run();
+>>>>>>> simulated
     </script>
 </body>
 </html>

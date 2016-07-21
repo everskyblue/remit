@@ -12,16 +12,21 @@
 
     <script>
         var add = document.querySelector('.output');
-        var route = new remit();
+        var app = new remit();
+        var route = new app.Route();
         
         route.group('/action', function (route) {
            route.get('', function(req, res) {
                add.innerHTML = 'action';
            });
-        })
+        });
 
+<<<<<<< HEAD
 
         route.run();
+=======
+        app.run();
+>>>>>>> simulated
     </script>
 </body>
 </html>
