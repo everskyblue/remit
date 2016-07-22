@@ -1,7 +1,23 @@
 #remit
 remit an easy way to manage routes with javascript supports optencion of parameters, with the latest version released can validate a form and simulate methods such as GET, POST, PUT, PATCH, DELETE, OPTIONS
 
-***
+---
+
+## Download/Installation
+
+**Download Source:**
+
+[production](https://raw.githubusercontent.com/nikeMadrid/remit/v1.3.4/src/remit.min.js)
+[development](https://raw.githubusercontent.com/nikeMadrid/remit/v1.3.4/src/remit.js)
+
+**install with npm**
+
+for install you should use the following command
+
+`npm install remit-route`
+
+---
+
 ##routes
 an example of how to use a route
 ```javascript
