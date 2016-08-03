@@ -53,7 +53,7 @@ var xhr = null;
 (function (global) {
     'use strict';
 
-    global.remit = function () {
+    global.remit = function (configuration) {
 
         if (global.XMLHttpRequest) {
             xhr = new XMLHttpRequest();
@@ -65,13 +65,20 @@ var xhr = null;
             }
         }
 
-        /* global regex */
+        /**
+         * @type {RegExp}
+         */
         var globalRgx  = /{([0-9a-zA-Z_\+\-%\:]+)}/g,
             sUpper     = /{((.*?):upper)}/g,
             sLower     = /{((.*?):lower)}/g,
             sString    = /{((.*?):string)}/g,
             sNumber    = /{((.*?):number)}/g;
 
+        /**
+         *
+         * @type {{path: (string|string), hash: (string|string), protocol: string, beforeUrl: (*|string), params: (*|string), host: string}}
+         * @private
+         */
         var _SERVER = {
             path: location.pathname || '/',
             hash: location.hash.replace(/\#\//g, '') || '/',
@@ -81,23 +88,63 @@ var xhr = null;
             host: location.hostname
         };
 
-        var self = this;
-
-        var context = [];
-
-        var hasOwnProperty = Object.prototype.hasOwnProperty;
-
-        this.event = {
-            validatable: Function
+        /**
+         * @type {{debugging: boolean, pageNotFount: boolean}}
+         */
+        var config = {
+            url: 'http://localhost',
+            baseUrl: '/',
+            showPageNotFount: true,
+            showAccessError: true
         };
 
+        /**
+         * @type {global}
+         */
+        var self = this;
+
+        /**
+         * @type {Array} context Route
+         */
+        var context = [];
+
+        /**
+         * prototype
+         */
+        var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+        /**
+         *
+         * @type {{validating: *}}
+         */
+        this.event = {
+            validating: Function
+        };
+
+        /**
+         * @type {{}}
+         */
         this.collection = {};
 
         /**
-         * template
+         * config change
          */
+        if (typeof configuration == 'object') {
+            for (var n in configuration) {
+                if (hasOwnProperty.call(config, n)) {
+                    config[n] =  configuration[n];
+                }
+            }
+        }
 
+        /**
+         * @type {number}
+         */
         var count = 0;
+
+        /**
+         * @type {RegExp}
+         */
         var PRINTED = new RegExp('(\{[\\\\{{)]([json|raw|escape]+)*[\|]?(.*?)[(\\\\}}]\})', 'g');
         var CONCATOBJECT = new RegExp('([.*?]\.(.+))', 'gi');
         var MAINTAIN = new RegExp('(\{\%[^\{\%)]([include|yield|block|extends]+)(.*?)[\%\}]\})', 'g');
@@ -108,7 +155,7 @@ var xhr = null;
          * @returns {*}
          */
         function templateRequest(url, callbackSuccess) {
-            var t = new Promise(function(resolve, reject) {
+            return new Promise(function (resolve, reject) {
                 var client = new XMLHttpRequest();
                 client.open('GET', url);
                 client.send();
@@ -123,8 +170,6 @@ var xhr = null;
                     reject(this.statusText);
                 };
             }).then(callbackSuccess);
-
-            return t;
         }
 
         this.detached = function (str, assign) {
@@ -391,6 +436,20 @@ var xhr = null;
         }
 
         /**
+         * @returns {boolean}
+         */
+        function isShowPageNotFount() {
+            return true == config.showPageNotFount;
+        }
+
+        /**
+         * @returns {boolean}
+         */
+        function isShowErrorAccess() {
+            return true == config.showAccessError;
+        }
+
+        /**
          * @param {Function|Object} obj
          * @param {Array} args
          */
@@ -476,8 +535,6 @@ var xhr = null;
                 max: [],
                 min: []
             };
-
-
 
             this.errors = [];
 
@@ -1011,7 +1068,7 @@ var xhr = null;
                     var m = req.request[1];
                     var f = req.request[2];
                     var a = req.request[3];
-                    route.event.validatable();
+                    route.event.validating();
                     renderer(f, [req, this].concat(a));
                     if (self.Request.isAllNotGet(m)) {
                         window.onbeforeunload = function(e) {
@@ -1253,8 +1310,9 @@ var xhr = null;
 
         /**
          * @param {Array} context Router
+         * @param callback
          */
-        function dispatch(context) {
+        function dispatch(context, callback) {
             if(typeof context == "object") {
                 var self = this;
                 var count = 0;
@@ -1285,7 +1343,7 @@ var xhr = null;
 
                         if (self.Request.isGet(method)) {
                             many.push(method);
-                            self.event.validatable = selector && selector.getAttribute('action') || fount ? eventForm.bind(self, validatable, selector, fount) : Function;
+                            self.event.validating = selector && selector.getAttribute('action') || fount ? eventForm.bind(self, validatable, selector, fount) : Function;
                             if (!emulatorAccessMethod() || method == 'OPTIONS') {
                                 request.env(fount, method, callback, args);
                             }
@@ -1296,7 +1354,9 @@ var xhr = null;
                                     if (compruebeEmulatorAccessRequestMethod(isManyUrls)) {
                                         if (count == 0) {
                                             count = 1;
-                                            document.querySelector('html').innerHTML =  errorAccessMethod(method, fount);
+                                            if (isShowErrorAccess()) {
+                                                document.querySelector('html').innerHTML =  errorAccessMethod(method, fount);
+                                            }
                                             throw new Error("Error: access method not allowed");
                                         }
                                     }
@@ -1315,7 +1375,10 @@ var xhr = null;
                 });
                 setTimeout(response.send.bind(response, request, self), 10);
                 if (notFount) {
-                    document.querySelector('html').innerHTML = pageNotFount(urls);
+                    callback.call(null, notFount);
+                    if (isShowPageNotFount()) {
+                        document.querySelector('html').innerHTML = pageNotFount(urls);
+                    }
                 }
             }
         }
@@ -1340,8 +1403,8 @@ var xhr = null;
             return false;
         };
 
-        this.run = function() {
-            return dispatch.bind(this)(context);
+        this.run = function(func) {
+            return dispatch.bind(this)(context, func);
         };
 
         /**
@@ -1378,4 +1441,4 @@ var xhr = null;
 
     return global;
 
-}(window || {}));
+}(typeof window !== 'undefined' ? window : {}));
