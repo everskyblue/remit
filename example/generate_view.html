@@ -12,11 +12,14 @@
 <script src="/src/remit.min.js"></script>
 <script>
 
-    var app = new remit();
+    var app = new remit({
+        viewPath: 'view/'
+    });
+
     var route = new app.Route();
 
     route.get('/', function(req, res) {
-        res.view('view/generate.html', {
+        res.view('generate.html', {
             gen: 'generated view!',
             user: {
                 name: 'saotome'

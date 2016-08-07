@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+
+<div class="outlet"></div>
+<script src="/src/remit.min.js"></script>
+<script>
+    var app = new remit({
+        viewPath: 'view/'
+    });
+
+    var route = new app.Route({
+        registerMiddleware: {
+            'user': function (req, res, next) {
+                 if ( req.params.id == 2 ) {
+                    return next(res);
+                 }
+                 res.redirect('/');
+             }
+        }
+    });
+
+    route.get('/user/verify/{id:number}', {
+        middleware: 'user', // or callback
+        asyncValidation: ['#the_name', {'name': 'required'}],
+        render: function (req, res, id) {
+            res.view('mdw.html', {
+                id: id
+            });
+        }
+    });
+
+    app.run();
+</script>
+</body>
+</html>

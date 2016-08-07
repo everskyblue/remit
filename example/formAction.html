@@ -28,7 +28,6 @@
         var route = new app.Route();
 
         route.get('/user/register', {
-            form: '#register',
             validation: ['#register', {
                 'username': 'required|min:5|max:15',
                 'password': 'required|min:6|max:20'

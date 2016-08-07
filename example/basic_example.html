@@ -12,14 +12,20 @@
 
     <script>
         var add = document.querySelector('.output');
-        var app = new remit();
+        var app = new remit({
+            showPageNotFount: false/*,
+            showAccessError: false*/
+        });
+
         var route = new app.Route();
 
         route.get('/', function(req, res) {
             add.innerHTML = 'home';
         });
 
-        app.run();
+        app.run(function(res) {
+            // not fount
+        });
     </script>
 </body>
 </html>
