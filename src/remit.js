@@ -211,6 +211,15 @@ var xhr = null;
                 var obtain = engine.tsection.name;
                 var types = engine.tsection.type;
 
+                if (obtain.length == 0 && types.length == 0) {
+
+                    engine.context.innerHTML = engine.compileData;
+
+                    engine.inEvent();
+
+                    return engine.compileData;
+                }
+
                 types.forEach(function (type, index, arr) {
                     if (type == 'include') {
 
