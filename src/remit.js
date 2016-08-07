@@ -246,8 +246,8 @@ var xhr = null;
                     var ie = _this.event.asyncValidation,
                         vd = ie[0],
                         form = document.querySelector(vd[0]);
-
-                    eventForm(vd, form, (form.getAttribute('action') || ie[1]));
+                    if (form !== null)
+                        eventForm(vd, form, (form.getAttribute('action') || ie[1]));
                 }
             },
 
@@ -288,6 +288,8 @@ var xhr = null;
 
                         self.inEvent();
                     });
+                }else {
+                    self.context.innerHTML = self.resolver(content);
                 }
             },
 
