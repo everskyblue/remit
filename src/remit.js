@@ -2,7 +2,7 @@
  * remit
  * https://github.com/nikeMadrid/remit
  * @author Nike Madrid
- * @version 1.3.4
+ * @version 1.4.6
  * @licence MIT
  */
 
@@ -53,7 +53,7 @@ var xhr = null;
 (function (global) {
     'use strict';
 
-    global.remit = function () {
+    global.remit = function (configuration) {
 
         if (global.XMLHttpRequest) {
             xhr = new XMLHttpRequest();
@@ -65,13 +65,20 @@ var xhr = null;
             }
         }
 
-        /* global regex */
+        /**
+         * @type {RegExp}
+         */
         var globalRgx  = /{([0-9a-zA-Z_\+\-%\:]+)}/g,
             sUpper     = /{((.*?):upper)}/g,
             sLower     = /{((.*?):lower)}/g,
             sString    = /{((.*?):string)}/g,
             sNumber    = /{((.*?):number)}/g;
 
+        /**
+         *
+         * @type {{path: (string|string), hash: (string|string), protocol: string, beforeUrl: (*|string), params: (*|string), host: string}}
+         * @private
+         */
         var _SERVER = {
             path: location.pathname || '/',
             hash: location.hash.replace(/\#\//g, '') || '/',
@@ -81,23 +88,63 @@ var xhr = null;
             host: location.hostname
         };
 
-        var self = this;
-
-        var context = [];
-
-        var hasOwnProperty = Object.prototype.hasOwnProperty;
-
-        this.event = {
-            validatable: Function
+        /**
+         * @type {{debugging: boolean, pageNotFount: boolean}}
+         */
+        var config = {
+            showPageNotFount: true,
+            showAccessError: true,
+            viewPath: ''
         };
 
-        this.collection = {};
+        /**
+         * @type {global}
+         */
+        var self = this;
 
         /**
-         * template
+         * @type {global}
+         * @private
          */
+        var _this = this;
 
+        /**
+         * @type {Array} context Route
+         */
+        var context = [];
+
+        /**
+         * prototype
+         */
+        var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+        /**
+         *
+         * @type {{validating: *}}
+         */
+        this.event = {
+            validating: Function
+        };
+
+        /**
+         * config change
+         */
+        if (typeof configuration == 'object') {
+            for (var n in configuration) {
+                if (hasOwnProperty.call(config, n)) {
+                    config[n] =  configuration[n];
+                }
+            }
+        }
+
+        /**
+         * @type {number}
+         */
         var count = 0;
+
+        /**
+         * @type {RegExp}
+         */
         var PRINTED = new RegExp('(\{[\\\\{{)]([json|raw|escape]+)*[\|]?(.*?)[(\\\\}}]\})', 'g');
         var CONCATOBJECT = new RegExp('([.*?]\.(.+))', 'gi');
         var MAINTAIN = new RegExp('(\{\%[^\{\%)]([include|yield|block|extends]+)(.*?)[\%\}]\})', 'g');
@@ -108,8 +155,8 @@ var xhr = null;
          * @returns {*}
          */
         function templateRequest(url, callbackSuccess) {
-            var t = new Promise(function(resolve, reject) {
-                var client = new XMLHttpRequest();
+            return new Promise(function (resolve, reject) {
+                var client = xhr;
                 client.open('GET', url);
                 client.send();
                 client.onload = function () {
@@ -123,8 +170,6 @@ var xhr = null;
                     reject(this.statusText);
                 };
             }).then(callbackSuccess);
-
-            return t;
         }
 
         this.detached = function (str, assign) {
@@ -143,26 +188,22 @@ var xhr = null;
         };
 
         this.detached.view = function (filename, context, data) {
-            var pos;
-
             if (typeof data == "undefined"){
                 data = context;
                 context = null;
             }
 
-            templateRequest(filename, function (v) {
+            templateRequest(config.viewPath + filename, function (v) {
                 var engine = self.detached.compile(v, data);
-
                 if (!context) {
                     var outlet = document.querySelector('.outlet');
-                    var ctx = outlet;
                     if (!outlet) {
-                        ctx = document.createElement('div');
-                        ctx.setAttribute('class', 'outlet');
-                        document.body.appendChild(ctx);
-                        ctx = document.querySelector('.outlet');
+                        outlet = document.createElement('div');
+                        outlet.setAttribute('class', 'outlet');
+                        document.body.appendChild(outlet);
+                        outlet = document.querySelector('.outlet');
                     }
-                    engine.context = ctx;
+                    engine.context = outlet;
                 }else {
                     engine.context = context;
                 }
@@ -191,6 +232,16 @@ var xhr = null;
 
         this.detached.prototype = {
 
+            inEvent: function () {
+                if (hasOwnProperty.call(_this.event, 'asyncValidation')) {
+                    var ie = _this.event.asyncValidation,
+                        vd = ie[0],
+                        form = document.querySelector(vd[0]);
+
+                    eventForm(vd, form, (form.getAttribute('action') || ie[1]));
+                }
+            },
+
             resolver: function (r) {
                 if ( PRINTED.test(r) ) {
                     r = this.rdata(r);
@@ -203,12 +254,11 @@ var xhr = null;
             },
 
             extend: function (content) {
-                var pos;
-                var self = this;
+                var pos  = 0,
+                    self = this;
                 if ( (pos = this.tsection.type.indexOf('extends')) != -1) {
-                    var replace = this.treplace[pos];
-
-                    templateRequest(this.tsection.name[pos], function (ext) {
+                    content = content.replace(this.treplace[pos], '');
+                    templateRequest(config.viewPath + this.tsection.name[pos], function (ext) {
                         var rplc = [];
                         var getBlock = content.split(/{%\s*(block\s*(.*))\s*%}/mg);
                         var yieldN = ext.match(/{%\s*yield\s*(.*)\s*%}/mg);
@@ -226,17 +276,19 @@ var xhr = null;
                         }
 
                         self.context.innerHTML = self.resolver(ext);
+
+                        self.inEvent();
                     });
                 }
             },
 
             includeContent: function (filename, content, i) {
                 var self = this;
-                templateRequest(filename, function (include) {
+                templateRequest(config.viewPath + filename, function (include) {
                     include = self.resolver(include);
                     content = content.replace(self.treplace[i], include);
-
                     self.extend(content);
+                    self.inEvent();
                 })
             },
 
@@ -274,8 +326,7 @@ var xhr = null;
                                 t = this.escapeHTML(tvar);
                                 break;
                         }
-
-                        return t || tvar;
+                        return t || (typeof tvar == 'function' ? tvar.call(null) : tvar);
                     };
 
                     if ( formatType && !(CONCATOBJECT.test(tvar)) ) {
@@ -355,39 +406,64 @@ var xhr = null;
             return _SERVER;
         }
 
-        function errorAccessMethod(method, url) {
-            return '<!DOCTYPE html>'+
-                '<html><head>'+
-                '<title>error: access method not allowed</title>'+
-                '<style>'+
-                '* {margin: 0;padding: 0;box-sizing: border-box;}'+
-                'html, body {background-color: #F1F1F1;}'+
-                'header {background: #32d4ff;color: white;line-height: 60px;padding: 0 20px;font-size: 25px;'+
-                'text-transform: capitalize; box-shadow: 0 2px 2px rgba(185, 185, 185, 0.66);}'+
-                'main > div {width: 1000px;margin: auto;margin-top: 3em;padding: 3em 10px;line-height: 30px;border: 10px solid #ffa2a2;background: white;color: #454545;}'+
-                '</style>'+
-                '</head><body>'+
-                '<header>error: access method not allowed</header>'+
-                '<main><div>'+
-                '<p>url: '+ url +'</p><p>method permitted: '+method+'</p><p>type error: method not allowed</p>'+
-                '</div></main></body></html>';
+        /**
+         * @returns {boolean}
+         */
+        function isShowPageNotFount() {
+            return true == config.showPageNotFount;
         }
 
+        /**
+         * @returns {boolean}
+         */
+        function isShowErrorAccess() {
+            return true == config.showAccessError;
+        }
+
+        /**
+         * @param {String} method
+         * @param {String} url
+         */
+        function errorAccessMethod(method, url) {
+            if (isShowErrorAccess()) {
+                document.querySelector('html').innerHTML = '<!DOCTYPE html>'+
+                    '<html><head>'+
+                    '<title>error: access method not allowed</title>'+
+                    '<style>'+
+                    '* {margin: 0;padding: 0;box-sizing: border-box;}'+
+                    'html, body {background-color: #F1F1F1;}'+
+                    'header {background: #32d4ff;color: white;line-height: 60px;padding: 0 20px;font-size: 25px;'+
+                    'text-transform: capitalize; box-shadow: 0 2px 2px rgba(185, 185, 185, 0.66);}'+
+                    'main > div {width: 1000px;margin: auto;margin-top: 3em;padding: 3em 10px;line-height: 30px;border: 10px solid #ffa2a2;background: white;color: #454545;}'+
+                    '</style>'+
+                    '</head><body>'+
+                    '<header>error: access method not allowed</header>'+
+                    '<main><div>'+
+                    '<p>url: '+ url +'</p><p>method permitted: '+method+'</p><p>type error: method not allowed</p>'+
+                    '</div></main></body></html>';
+            }
+        }
+
+        /**
+         * @param {Array} urls
+         */
         function pageNotFount(urls) {
-            return '<!DOCTYPE html>'+
-                '<html><head>'+
-                '<title>error: 404 page not fount</title>'+
-                '<style>'+
-                '* {margin: 0;padding: 0;box-sizing: border-box;}'+
-                'html, body {background-color: #F1F1F1;}'+
-                'header {background: #32d4ff;color: white;line-height: 60px;padding: 0 20px;font-size: 25px;'+
-                'text-transform: capitalize; box-shadow: 0 2px 2px rgba(185, 185, 185, 0.66);}'+
-                'main > div {width: 1000px;margin: auto;margin-top: 3em;padding: 3em 10px;line-height: 30px;border: 10px solid #ffa2a2;background: white;color: #454545;} .urls { color: #000; padding-left: 30px;font-family: monospace;}'+
-                '</style>'+
-                '</head><body>'+
-                '<header>Error: 404 Page Not Fount</header>'+
-                '<main><div>'+
-                '<p>code: 404</p><p>type error: page not fount</p><div style="display:flex;">urls:<p class="urls"> ^'+ urls.join('<br>^').replace(/[\\]|\/\?/g, function(v) { return '' }) + '</p></div></div></main></body></html>';
+            if (isShowPageNotFount()) {
+                document.querySelector('html').innerHTML = '<!DOCTYPE html>'+
+                    '<html><head>'+
+                    '<title>error: 404 page not fount</title>'+
+                    '<style>'+
+                    '* {margin: 0;padding: 0;box-sizing: border-box;}'+
+                    'html, body {background-color: #F1F1F1;}'+
+                    'header {background: #32d4ff;color: white;line-height: 60px;padding: 0 20px;font-size: 25px;'+
+                    'text-transform: capitalize; box-shadow: 0 2px 2px rgba(185, 185, 185, 0.66);}'+
+                    'main > div {width: 1000px;margin: auto;margin-top: 3em;padding: 3em 10px;line-height: 30px;border: 10px solid #ffa2a2;background: white;color: #454545;} .urls { color: #000; padding-left: 30px;font-family: monospace;}'+
+                    '</style>'+
+                    '</head><body>'+
+                    '<header>Error: 404 Page Not Fount</header>'+
+                    '<main><div>'+
+                    '<p>code: 404</p><p>type error: page not fount</p><div style="display:flex;">urls:<p class="urls"> ^'+ urls.join('<br>^').replace(/[\\]|\/\?/g, function(v) { return '' }) + '</p></div></div></main></body></html>';;
+            }
         }
 
         /**
@@ -395,9 +471,7 @@ var xhr = null;
          * @param {Array} args
          */
         function renderer(obj, args) {
-            var propertyExists = Object.prototype.hasOwnProperty;
-            if(propertyExists.call(obj, 'render')) {
-                if(propertyExists.call(obj, 'middleware')) { }
+            if(hasOwnProperty.call(obj, 'render')) {
                 obj.render.apply(this, args);
             }else {
                 obj.apply(this, args);
@@ -417,13 +491,15 @@ var xhr = null;
                 var name = matches.shift();
                 var rgx = matches.shift();
 
+                obj.nameParam.push(name);
+
                 obj.capture = {
                     expression: String(expression).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
                     name: name,
                     typeCapture: rgx
                 };
 
-                url = url.replace(expression, '([\\'+ rgx +'])');
+                url = url.replace(expression, '(\\'+ rgx +')');
             }
 
             var quote = pregQuote(url, '/');
@@ -431,19 +507,20 @@ var xhr = null;
             return (function () {
                 var m = quote.match(globalRgx);
                 if (m !== null) {
-                    for (var i in m) {
-                        if (sString.test(m[i] && m[i].match(sString))) {
-                            quote = quote.replace(m[i], "([a-zA-Z]+)");
-                        } else if (sNumber.test(m[i] && m[i].match(sNumber))) {
-                            quote = quote.replace(m[i], "([0-9]+)");
-                        } else if (sLower.test(m[i] && m[i].match(sLower))) {
-                            quote = quote.replace(m[i], "([a-z]+)");
-                        } else if (sUpper.test(m[i] && m[i].match(sUpper))) {
-                            quote = quote.replace(m[i], "([A-Z]+)");
+                    each(m, function (index, value) {
+                        obj.nameParam.push(value.replace(/\{|\}/g, ''));
+                        if (sString.test(value && value.match(sString))) {
+                            quote = quote.replace(value, "([a-zA-Z]+)");
+                        } else if (sNumber.test(value && value.match(sNumber))) {
+                            quote = quote.replace(value, "([0-9]+)");
+                        } else if (sLower.test(value && value.match(sLower))) {
+                            quote = quote.replace(value, "([a-z]+)");
+                        } else if (sUpper.test(value && value.match(sUpper))) {
+                            quote = quote.replace(value, "([A-Z]+)");
                         } else {
-                            quote = quote.replace(m[i], "([0-9a-zA-Z_\\+\\-%\\:]+)");
+                            quote = quote.replace(value, "([0-9a-zA-Z_\\+\\-%\\:]+)");
                         }
-                    }
+                    });
                 }
 
                 obj.urls.push(quote);
@@ -477,8 +554,6 @@ var xhr = null;
                 min: []
             };
 
-
-
             this.errors = [];
 
             this.form = document.querySelector(form);
@@ -505,12 +580,14 @@ var xhr = null;
             },
 
             splitRules: function (nameInput, rules) {
-                var f = rules.split('|').map(function(item) {
+                var input,
+                    func,
+                    f = rules.split('|').map(function(item) {
                     if(/\d+/g.test(item)) {
 
                         var type = item.match(/\D+/g)[0].replace(/\:/g, '');
                         var rule_value = item.match(/\d+/g)[0];
-                        var func = this[type];
+                        func = this[type];
 
                         if (type == 'min') {
                             this.values.min[nameInput] = parseInt(rule_value);
@@ -519,17 +596,16 @@ var xhr = null;
                         }
 
                         this.setErrors(nameInput, true);
-                        var input = document.querySelector('input[name="'+nameInput+'"]');
+                        input = document.querySelector('input[name="'+nameInput+'"]');
                         this.rules.call(this, input, this.compareValue, parseInt(rule_value));
 
                     }else {
-                        var func = this[item];
+                        func = this[item];
                         if (typeof func == 'function') {
                             if(item == 'required') {
                                 this.setErrors('required_'+nameInput, true);
                             }
-
-                            var input = document.querySelector('input[name="'+nameInput+'"]');
+                            input = document.querySelector('input[name="'+nameInput+'"]');
                             this.rules.call(this, input, func);
                         }
                     }
@@ -564,7 +640,7 @@ var xhr = null;
                 var self = this;
 
                 var showMsg = function(key, tr) {
-                    if(Object.prototype.hasOwnProperty.call(self.msg, key)) {
+                    if(hasOwnProperty.call(self.msg, key)) {
                         return self.msg[key].replace(/\{[max|min]*\}/g, tr);
                     }
                     return '';
@@ -605,7 +681,6 @@ var xhr = null;
                                 }
 
                             }, 2050);
-
 
                             i.parentNode.insertBefore(node, i);
                         }
@@ -715,7 +790,7 @@ var xhr = null;
                 };
 
             for (var name in options) {
-                if (Object.prototype.hasOwnProperty.call(defaultsOptions, name)) {
+                if (hasOwnProperty.call(defaultsOptions, name)) {
                     switch (name) {
                         case 'path':
                             construct += ';path='+options[name];
@@ -838,7 +913,7 @@ var xhr = null;
          */
         this.Request = function () {
             var http = infoHTTP();
-            this.request = {} || [];
+            this.request = [];
 
             /**
              * @return {Boolean}
@@ -1011,7 +1086,7 @@ var xhr = null;
                     var m = req.request[1];
                     var f = req.request[2];
                     var a = req.request[3];
-                    route.event.validatable();
+                    route.event.validating();
                     renderer(f, [req, this].concat(a));
                     if (self.Request.isAllNotGet(m)) {
                         window.onbeforeunload = function(e) {
@@ -1065,6 +1140,7 @@ var xhr = null;
         this.Router = function (method, url, func) {
             this.urls = [];
             this.capture = {};
+            this.nameParam = [];
 
             this.setMethod(method);
             this.setUrl(url);
@@ -1125,10 +1201,15 @@ var xhr = null;
         };
 
         /**
+         * @param register
          * @returns {global.remit}
          * @constructor
          */
-        this.Route = function () { return this; };
+        this.Route = function (register) {
+            self.globalObjectRegister = register || {};
+
+            return this;
+        };
 
         /**
          * @param {String} url
@@ -1235,74 +1316,154 @@ var xhr = null;
                     enumerable: false,
                     writable: false,
                     configurable: true,
-                    value: selector.getAttribute('action') || u
+                    value: u
                 });
 
                 if (isErrors.length == 0) {
-                    self.Cookie.remove('req_met', window.srcStorage);
+                    self.Cookie.remove('req_met', u);
                     self.Cookie('req_met', Date.now(), {
-                        path: window.srcStorage
+                        path: u
                     });
                 }else {
                     self.Cookie('req_met', false, {
-                        path: window.srcStorage
+                        path: u
                     });
                 }
             });
         }
 
         /**
-         * @param {Array} context Router
+         * @param {String|Function} mddw
+         * @param {Request} req
+         * @param {Response} res
          */
-        function dispatch(context) {
+        function stack(mddw, req, res) {
+            if (typeof mddw == 'string' && typeof self.globalObjectRegister != 'undefined' &&
+                typeof self.globalObjectRegister.registerMiddleware[mddw] != 'undefined') {
+                mddw = self.globalObjectRegister.registerMiddleware[mddw];
+            }else if (typeof mddw != 'function') {
+                throw new Error('it must pass a callback or a string that this records on the instance route');
+            }
+
+            mddw(req, res, stack.next);
+
+            return res;
+        }
+
+        /**
+         * @param {Response} res
+         */
+        stack.next = function (res) {
+            res.nextRun = true;
+        };
+
+        /**
+         * @param {Object} object
+         * @param {Request} req
+         * @param {Response} res
+         * @param {String} url
+         * @return {*}
+         * @description
+         * check the properties of the object:
+         *      middleware,
+         *      validation,
+         *      asyncValidation
+         * and makes an action
+         */
+        function deepenObject(object, req, res, url) {
+            if (hasOwnProperty.call(object, 'middleware')) {
+                if (!stack(object.middleware, req, res).nextRun) {
+                    throw new Error('');
+                }
+            }
+
+            if (hasOwnProperty.call(object, 'asyncValidation')) {
+                self.event.asyncValidation = [object.asyncValidation, url];
+            }
+
+            if (hasOwnProperty.call(object, 'validation')) {
+                var form = typeof object.validation[0] == 'object' ? object.validation[0] : document.querySelector(object.validation[0]);
+                if (form) {
+                    self.event.validating = eventForm.bind(self, object.validation, form, (form.getAttribute('action') || url));
+                }
+            }
+        }
+
+        /**
+         * @param {Array} param
+         * @param {Array} merge
+         * @returns {*}
+         * @description
+         * positions replaced by the names of the parameters
+         */
+        function mergeNameToParam(param, merge) {
+            for (var i in param) {
+                param[merge[i].substr(0, (merge[i].indexOf(':') != -1 ?merge[i].indexOf(':'): merge[i].length))] = param[i];
+                delete param[i];
+            }
+            return param;
+        }
+
+        /**
+         * @param v
+         * @returns {*}
+         * @description
+         * replace to entity html
+         */
+        function urlReplaceTo(v) {
+            if (Object.keys(v.capture).length>0) {
+                return v.urls[0].replace('([\\'+v.capture.typeCapture+'])',v.capture.expression)
+                        .replace(v.capture.typeCapture,'&#92;'+v.capture.typeCapture)
+                    + '/$  [name="'+ v.capture.name +'"]';
+            }
+            return v.urls[0];
+        }
+
+        /**
+         * @param {Array} context Router
+         * @param callback
+         */
+        function dispatch(context, callback) {
             if(typeof context == "object") {
-                var self = this;
-                var count = 0;
-                var many = [];
+                var manyMethods = [];
+                var urls = [];
+                var notFount = true;
                 var request = new self.Request();
                 var response = new self.Response();
-                var notFount = true;
-                var urls = [];
 
                 context.forEach(function(v, index,a) {
-                    urls.push(v.urls[0]);
-                    if (Object.keys(v.capture).length>0) {
-                        urls[index] = v.urls[0].replace(
-                                '([\\'+v.capture.typeCapture+'])',
-                                v.capture.expression
-                            ).replace(v.capture.typeCapture,'&#92;'+v.capture.typeCapture)+'/$  [name="'+ v.capture.name +'"]';
-                    }
-
-                    if ( (self.m = dispatch.matches(v.getUrl())) ) {
-                        var fount = self.m.shift();
-                        var args = self.m;
-                        var callback = v.getFunc();
-                        var method = v.getMethod();
-                        var selector = self.selector = document.querySelector(callback.form);
-                        var validatable = self.validatable = callback.validation;
+                    urls.push(urlReplaceTo(v));
+                    if (( self.m = dispatch.matches( v.getUrl()) )) {
                         notFount = false;
-                        self.collection = v.capture;
+
+                        var url_fount = self.m.shift(),
+                            method    = v.getMethod(),
+                            callback  = v.getFunc(),
+                            args      = request.params = mergeNameToParam(self.m, v.nameParam);
+
+                        manyMethods.push(method);
 
                         if (self.Request.isGet(method)) {
-                            many.push(method);
-                            self.event.validatable = selector && selector.getAttribute('action') || fount ? eventForm.bind(self, validatable, selector, fount) : Function;
+                            request.method = method;
                             if (!emulatorAccessMethod() || method == 'OPTIONS') {
-                                request.env(fount, method, callback, args);
+                                deepenObject(callback, request, response, url_fount);
+                                request.env(url_fount, method, callback, Object.values(args));
                             }
                         }else if (self.Request.isAllNotGet(method))  {
-                            var isManyUrls = many.indexOf('GET') != -1;
+                            var isManyUrls = manyMethods.indexOf('GET') != -1;
                             try {
                                 var clear = setInterval(function() {
                                     if (compruebeEmulatorAccessRequestMethod(isManyUrls)) {
-                                        if (count == 0) {
-                                            count = 1;
-                                            document.querySelector('html').innerHTML =  errorAccessMethod(method, fount);
+                                        if (count == 0 && (count = 1)) {
+                                            errorAccessMethod(method, url_fount);
                                             throw new Error("Error: access method not allowed");
                                         }
                                     }
 
                                     if (emulatorAccessMethod()) {
-                                        request.env(fount, method, callback, args);
+                                        request.method = method;
+                                        deepenObject(callback, request, response, url_fount);
+                                        request.env(url_fount, method, callback, Object.values(args));
                                         clearInterval(clear);
                                     }
                                 }, 10);
@@ -1310,12 +1471,12 @@ var xhr = null;
                                 console.error(e);
                             }
                         }
-
                     }
                 });
                 setTimeout(response.send.bind(response, request, self), 10);
                 if (notFount) {
-                    document.querySelector('html').innerHTML = pageNotFount(urls);
+                    pageNotFount(urls);
+                    callback.call(null, request, response);
                 }
             }
         }
@@ -1328,20 +1489,24 @@ var xhr = null;
             var m = null;
             if ( (m = url.exec(infoHTTP().path)) ) {
                 if(url.lastIndex == m.index) {
+                    ++url.lastIndex;
                     if (m[0].length == m.input.length) {
                         delete m.index;
                         delete m.input;
 
                         return m;
                     }
-                    ++url.lastIndex;
                 }
             }
             return false;
         };
 
-        this.run = function() {
-            return dispatch.bind(this)(context);
+        /**
+         * @param {Function} func
+         * @returns {*}
+         */
+        this.run = function(func) {
+            return dispatch.bind(this)(context, func);
         };
 
         /**
@@ -1378,4 +1543,4 @@ var xhr = null;
 
     return global;
 
-}(window || {}));
+}(typeof window !== 'undefined' ? window : {}));
