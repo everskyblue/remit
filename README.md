@@ -19,10 +19,27 @@ for install you should use the following command
 ---
 
 ##routes
-an example of how to use a route
+
+configured to display the error page that is displayed by default and an example of how to use a route
+
 ```javascript
-var app = new remit()
-var route = new app.Route()
+var app = new remit({
+	/*showPageNotFount: true,
+    showAccessError: true,*/
+    viewPath: '/default_dir_view/'
+})
+
+var route = new app.Route({
+	registerMiddleware: {
+		'user': function(req, res, next) {
+			if (req.params.id == 1){
+				return next(res)
+			}
+			res.redirect('/')
+		}
+	}
+})
+
 route.get('/', function(req, res) {
     alert('home')
 })
@@ -32,7 +49,7 @@ to obtain the parameters
 
 ```javascript
 route.get('/user/{id}', function(req, res, id){
-	alert(id)
+	alert(id) // or req.params.id 
 })
 ```
 
@@ -49,11 +66,18 @@ if you want to submit a form by post method and validate the second parameter an
 
 ```javascript
 route.get('/user/login', {
-	form: '#idForm',
 	validation: ['#idForm', {'name': 'required', 'pass': 'required'}],
-    // or new app.validation('#idForm', {'name': 'required', 'pass': 'required'})
 	render: function(req, res) {
 		console.log('via get');
+   }
+};
+```
+When running a view, the key is changed
+```javascript
+route.get('/user/login', {
+	asyncValidation: ['#idForm', {'name': 'required', 'pass': 'required'}],
+	render: function(req, res) {
+		res.view('login.html');
    }
 };
 ```
@@ -69,11 +93,9 @@ or do so through the method options
 
 ```javascript
 route.options('/user/login', {
-	form: '#idForm',
 	validation: ['#idForm', {'name': 'required', 'pass': 'required'}],
-    // or new app.validation('#idForm', {'name': 'required', 'pass': 'required'})
 	render: function(req, res) {
-		console.log('via get')
+		console.log('OPTIONS method')
    }
 }
 ```
@@ -104,6 +126,7 @@ route.get('/view', function(req, res) {
 
 routes method
 
+- **group**
 - **get**
 - **post**
 - **put**
@@ -112,6 +135,19 @@ routes method
 - **options**
 
 ***
+
+#middleware
+
+use the middleware that is registered, or pass as a function
+
+```javascript
+route.get('/verify/user/{id}', {
+	middleware: 'user',
+	render: function(req, res, id) {
+		console.log(id);
+   }
+};
+```
 
 ##validation
 

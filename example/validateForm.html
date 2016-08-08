@@ -28,7 +28,6 @@
         var route = new app.Route();
 
         route.get('/user/register', {
-            form: '#register',
             validation: ['#register', {
                 'username': 'required|min:5|max:15',
                 'password': 'required|min:6|max:20'
@@ -41,6 +40,20 @@
         route.post('/user/register', function(req, res) {
             add.innerHTML = 'method POST!';
         });
+
+        /**
+
+         route.get('/user/register', {
+            asyncValidation: ['#register', {
+                'username': 'required|min:5|max:15',
+                'password': 'required|min:6|max:20'
+            }],
+            render: function(req, res) {
+    			res.view('view.html');
+            }
+        });
+
+         */
 
         // or use the method options
 
