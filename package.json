@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nikeMadrid/remit.git"
+    "url": "git+https://github.com/fernik/remit.git"
   },
   "keywords": [
     "remit",
@@ -22,7 +22,7 @@
   "author": "Nike Madrid",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nikeMadrid/remit/issues"
+    "url": "https://github.com/fernik/remit/issues"
   },
-  "homepage": "https://github.com/nikeMadrid/remit#readme"
+  "homepage": "https://github.com/fernik/remit#readme"
 }
