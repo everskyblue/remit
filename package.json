@@ -1,6 +1,6 @@
 {
   "name": "remit-route",
-  "version": "1.4.6",
+  "version": "1.5.0",
   "description": "remit an easy way to manage routes with javascript supports optencion of parameters, with the latest version released can validate a form and simulate methods such as GET, POST, PUT, PATCH, DELETE, OPTIONS",
   "main": "src/remit.js",
   "directories": {

@@ -1,8 +1,8 @@
 /**
  * remit
- * https://github.com/nikeMadrid/remit
+ * https://github.com/aizeni/remit
  * @author Nike Madrid
- * @version 1.4.6
+ * @version 1.5.0
  * @licence MIT
  */
 
@@ -46,11 +46,12 @@ if (!Array.prototype.filter) {
 
 (function(global) {
     var location = global.location;
-    
+
     global.Remit = function (cnf) {
-        var route, 
-            _remit = this;
-    
+        var route,
+            _remit = this,
+            exec = {};
+
         var own = Object.prototype.hasOwnProperty;
 
         var config = {
@@ -61,15 +62,15 @@ if (!Array.prototype.filter) {
             nameInputHidden: null,
             baseUrl: ''
         };
-        	
+
         if (typeof cnf === 'object') {
-           for (var p in cnf) {
+            for (var p in cnf) {
                 if (own.call(config, p)){
                     config[p] = cnf[p];
                 }
             }
         }
-		
+
         var globalRgx  = /{([0-9a-zA-Z_\+\-%\:]+)}/g,
             sUpper     = /{((.*?):upper)}/g,
             sLower     = /{((.*?):lower)}/g,
@@ -78,7 +79,9 @@ if (!Array.prototype.filter) {
 
         var __LOCAL__ = {
             path: (location.pathname || '/'),
-            hash: location.hash,
+            hash: function () {
+                return location.hash;
+            },
             origin: location.origin,
             params: location.search,
             host: location.hostname,
@@ -88,9 +91,9 @@ if (!Array.prototype.filter) {
                     return sessionStorage.getItem('_method');
                 }
                 return 'GET';
-            }());
+            }())
         };
-		
+
         var rgx_file = /(\/(\w+)\.[html|php]+)/i;
         if ( rgx_file.test(__LOCAL__.path) ) {
             __LOCAL__.path = __LOCAL__.path.replace(
@@ -102,11 +105,11 @@ if (!Array.prototype.filter) {
         var _url    = __LOCAL__.path,
             _method = __LOCAL__.method,
             _hash   = __LOCAL__.hash;
-     
+
         this.evt = {
-            validator: Function
+            validator: global.Function
         };
-		
+
         function each(arr, func) {
             if(arr instanceof Array) {
                 for (var prop in arr) {
@@ -116,14 +119,14 @@ if (!Array.prototype.filter) {
                 }
             }
         }
-		
+
         function pregQuote(str, rpl) {
             if(str.match(/\//g) !== null) {
                 str = String(str).replace(new RegExp('[.\\\*$=!<>|\\' + (rpl || '') + ']', 'g'),'\\$&');
             }
             return str;
         }
-		
+
         function regexUrl(url, obj) {
             var quote = pregQuote(url, '/');
 
@@ -131,14 +134,13 @@ if (!Array.prototype.filter) {
                 var m = quote.match(globalRgx);
                 if (m !== null) {
                     each(m, function (value) {
-                        obj.nameParams.push(value.replace(/\{|\}/g, ''));
-                        if (sString.test(value && value.match(sString))) {
+                        if (sString.test(value) && value.match(sString)) {
                             quote = quote.replace(value, "([a-zA-Z]+)");
-                        } else if (sNumber.test(value && value.match(sNumber))) {
+                        } else if (sNumber.test(value) && value.match(sNumber)) {
                             quote = quote.replace(value, "([0-9]+)");
-                        } else if (sLower.test(value && value.match(sLower))) {
+                        } else if (sLower.test(value) && value.match(sLower)) {
                             quote = quote.replace(value, "([a-z]+)");
-                        } else if (sUpper.test(value && value.match(sUpper))) {
+                        } else if (sUpper.test(value) && value.match(sUpper)) {
                             quote = quote.replace(value, "([A-Z]+)");
                         } else {
                             quote = quote.replace(value, "([0-9a-zA-Z_\\+\\-%\\:]+)");
@@ -146,17 +148,24 @@ if (!Array.prototype.filter) {
                     });
                 }
 
-                obj.urls.push(quote);
+                if(obj) {
+                    obj.nameParams[new RegExp(quote + '\\/?')] = m;
+                    obj.urls.push(quote);
+                }
 
                 return new RegExp(quote + '\\/?');
             }());
         }
-        
-        function findUrl(url) {
-            var m = null;
-            if ( (m = url.exec(_url)) ) {
+
+        function findUrl(url, dd) {
+            var m = null, f_url = _url;
+
+            if (dd === true) {
+                f_url = _url + _hash();
+            }
+
+            if ( (m = url.exec(f_url)) ) {
                 if(url.lastIndex == m.index) {
-                    ++url.lastIndex;
                     if (m[0].length == m.input.length) {
                         delete m.index;
                         delete m.input;
@@ -166,8 +175,16 @@ if (!Array.prototype.filter) {
             }
             return false;
         }
-     
-     
+
+        function exec_route(o, params) {
+            if(typeof o === 'object') {
+                if(o.render) o.render.apply(o, params);
+            }else if(typeof o === 'function') {
+                o.apply({}, params);
+            }
+        }
+
+
         this.Route = function () {
             this.todo = {};
             this.urls = [];
@@ -175,6 +192,7 @@ if (!Array.prototype.filter) {
 
             var self = route = this;
             var resolve = function(t, o, c) {
+
                 if (!self.todo[t]) {
                     self.todo[t] = [];
                 }
@@ -183,10 +201,12 @@ if (!Array.prototype.filter) {
                     if (typeof o.pattern == 'undefined') {
                         throw 'not find pattern';
                     }
-                    o.pattern = regexUrl((config.baseUrl + o.pattern), self);
+                    o.pattern = regexUrl((config.baseUrl + (t === 'HASH' ? '#!/' : '') + o.pattern), self);
+
                 }else if(typeof o === 'string') {
-                    o = regexUrl((config.baseUrl + o), self);
+                    o = regexUrl((config.baseUrl +(t === 'HASH' ? '#!/' : '')+ o), self);
                 }
+
                 self.todo[t].push([o, c]);
             };
             this.map = function(methods, o, c) {
@@ -222,27 +242,90 @@ if (!Array.prototype.filter) {
                 resolve('HASH', o,c);
                 return this;
             };
-            this.use = function (name, callback){
-                //
+            this.use = function (name, url, callback){
+                e_type('use', name);
+                callback = typeof url == 'function' ? url : callback;
+                url = typeof url == 'string' ? url : false;
+                exec['use'][name].url.push(url);
+                exec['use'][name].fn.push(callback);
+                return this;
             };
-            this.send = function () {
-                //
+            this.send = function (name, callback) {
+                e_type('send', name);
+                exec['send'][name].fn.push(callback);
+                return this;
             };
-    	};
-    	
-    	this.run = function(error) {
-          var obt = route.todo[_method];
-          each(obt, function (arr) {
-              var p = arr[0],
-                  o = arr[1],
-                  u = (p instanceof RegExp) ? p : p.pattern,
-                  get = findUrl(u);
-              
-              if (get) {
-                  
-              }
-          });
-       };
-     };
-	
+
+            function e_type(type, name){
+                if(!exec[type]) {
+                    exec[type] = {};
+                }
+
+                if(!exec[type][name]) {
+                    exec[type][name] = {
+                        type: [],
+                        url: [],
+                        fn: []
+                    };
+                }
+            }
+        };
+
+        this.hash = function(evt){
+            each(this.route_hash, function (arr) {
+                var p = arr[0],
+                    o = arr[1],
+                    u = (p instanceof RegExp) ? p : p.pattern,
+                    get = findUrl(u, true);
+
+                if (get) {
+                    var url = get.shift();
+                    exec_route(o, get);
+                }
+            });
+        };
+
+        this.run = function(error) {
+            this.route_hash = route.todo['HASH'] || [];
+
+            delete route.todo['HASH'];
+
+            var obt = route.todo[_method],
+                pass = false,
+                url;
+            each(obt, function (arr) {
+                var p = arr[0],
+                    o = arr[1],
+                    u = (p instanceof RegExp) ? p : p.pattern,
+                    get = findUrl(u);
+
+                if (get) {
+                    pass = true;
+                    url = get.shift();
+                    if (exec.use && exec.use[p.name] ) {
+                        var use_o = exec.use[p.name],
+                            u_url = use_o.url,
+                            u_fn = use_o.fn;
+
+                        each(u_url, function(u, i){
+                            this.route_hash.push([regexUrl(url + u), u_fn[i]]);
+                        }.bind(this));
+                    }
+
+                    exec_route(o, get);
+                }
+            }.bind(this));
+
+            if (this.route_hash){
+                if(window.addEventListener) window.addEventListener('hashchange', this.hash.bind(this));
+                if(window.attachEvent) window.attachEvent('hashchange', this.hash.bind(this));
+                this.hash(null);
+            }
+
+            if (typeof error === 'function' && pass === false) {
+                error();
+            }
+        };
+    };
+
 }(window));
