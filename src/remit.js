@@ -2,7 +2,7 @@
  * remit
  * https://github.com/aizeni/remit
  * @author Nike Madrid
- * @version 1.5.0
+ * @version 1.5.1
  * @licence MIT
  */
 
@@ -60,7 +60,8 @@ if (!Array.prototype.filter) {
             engine: null,
             activeRef: true,
             nameInputHidden: null,
-            baseUrl: ''
+            baseUrl: '',
+            prefixHash: '#!/'
         };
 
         if (typeof cnf === 'object') {
@@ -184,6 +185,18 @@ if (!Array.prototype.filter) {
             }
         }
 
+        function resolvePattern(t, o, base, ctx) {
+            if (typeof o === 'object') {
+                if (typeof o.pattern == 'undefined') {
+                    throw 'not find pattern';
+                }
+                o.pattern = regexUrl(((base || '')+ (route.groupUrl || '') + (t === 'HASH' ? config.prefixHash : '') + o.pattern), ctx);
+
+            }else if(typeof o === 'string') {
+                o = regexUrl(((base || '') + (route.groupUrl || '') + (t === 'HASH' ? config.prefixHash : '')+ o), ctx);
+            }
+            return o;
+        }
 
         this.Route = function () {
             this.todo = {};
@@ -192,28 +205,20 @@ if (!Array.prototype.filter) {
 
             var self = route = this;
             var resolve = function(t, o, c) {
-
-                if (!self.todo[t]) {
-                    self.todo[t] = [];
-                }
-
-                if (typeof o === 'object') {
-                    if (typeof o.pattern == 'undefined') {
-                        throw 'not find pattern';
-                    }
-                    o.pattern = regexUrl((config.baseUrl + (t === 'HASH' ? '#!/' : '') + o.pattern), self);
-
-                }else if(typeof o === 'string') {
-                    o = regexUrl((config.baseUrl +(t === 'HASH' ? '#!/' : '')+ o), self);
-                }
-
+                if (!self.todo[t]) self.todo[t] = [];
+                o = resolvePattern(t, o, config.baseUrl, self);
                 self.todo[t].push([o, c]);
+            };
+            this.group = function (url, callback) {
+                this.groupUrl = url;
+                callback.call(this, this);
             };
             this.map = function(methods, o, c) {
                 if (!(methods instanceof Array)){
                     throw 'required array';
                 }
-                resolve(methods, o, c);
+
+                resolve(methods.join('/'), o, c);
                 return this;
             };
             this.get = function(o, c) {
@@ -238,6 +243,10 @@ if (!Array.prototype.filter) {
                 resolve('DELETE', o, c);
                 return this;
             };
+            this.options = function(o,c){
+                resolve('OPTIONS', o, c);
+                return this;
+            };
             this.when = function (o, c) {
                 resolve('HASH', o,c);
                 return this;
@@ -245,7 +254,7 @@ if (!Array.prototype.filter) {
             this.use = function (name, url, callback){
                 e_type('use', name);
                 callback = typeof url == 'function' ? url : callback;
-                url = typeof url == 'string' ? url : false;
+                url = typeof url == 'string' ? config.prefixHash + url : false;
                 exec['use'][name].url.push(url);
                 exec['use'][name].fn.push(callback);
                 return this;
@@ -257,10 +266,7 @@ if (!Array.prototype.filter) {
             };
 
             function e_type(type, name){
-                if(!exec[type]) {
-                    exec[type] = {};
-                }
-
+                if(!exec[type]) exec[type] = {};
                 if(!exec[type][name]) {
                     exec[type][name] = {
                         type: [],
@@ -286,35 +292,41 @@ if (!Array.prototype.filter) {
         };
 
         this.run = function(error) {
+            route.groupUrl = '';
+
             this.route_hash = route.todo['HASH'] || [];
 
             delete route.todo['HASH'];
 
-            var obt = route.todo[_method],
-                pass = false,
-                url;
-            each(obt, function (arr) {
-                var p = arr[0],
-                    o = arr[1],
-                    u = (p instanceof RegExp) ? p : p.pattern,
-                    get = findUrl(u);
+            var pass = false, url, mods;
 
-                if (get) {
-                    pass = true;
-                    url = get.shift();
-                    if (exec.use && exec.use[p.name] ) {
-                        var use_o = exec.use[p.name],
-                            u_url = use_o.url,
-                            u_fn = use_o.fn;
+            for (var mtd in route.todo) {
+                each(route.todo[mtd], function (arr) {
+                    var p = arr[0],
+                        o = arr[1],
+                        u = (p instanceof RegExp) ? p : p.pattern,
+                        get = findUrl(u);
 
-                        each(u_url, function(u, i){
-                            this.route_hash.push([regexUrl(url + u), u_fn[i]]);
-                        }.bind(this));
+                    if(get) {
+                        pass = true;
+                        url = get.shift();
+                        mods = mtd.split('/');
+                        if (mods.indexOf(_method) >= 0){
+                            if (exec.use && exec.use[p.name] ) {
+                                var use_o = exec.use[p.name],
+                                    u_url = use_o.url,
+                                    u_fn = use_o.fn;
+
+                                each(u_url, function(u, i){
+                                    this.route_hash.push([resolvePattern(false, url + u), u_fn[i]]);
+                                }.bind(this));
+                            }
+
+                            exec_route(o, get);
+                        }
                     }
-
-                    exec_route(o, get);
-                }
-            }.bind(this));
+                }.bind(this))
+            }
 
             if (this.route_hash){
                 if(window.addEventListener) window.addEventListener('hashchange', this.hash.bind(this));
