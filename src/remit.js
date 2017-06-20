@@ -49,6 +49,7 @@ if (!Array.prototype.filter) {
 
     global.Remit = function (cnf) {
         var route,
+            urls = [],
             _remit = this,
             exec = {};
 
@@ -191,9 +192,10 @@ if (!Array.prototype.filter) {
                     throw 'not find pattern';
                 }
                 o.pattern = regexUrl(((base || '')+ (route.groupUrl || '') + (t === 'HASH' ? config.prefixHash : '') + o.pattern), ctx);
-
+                urls.push(o.pattern);
             }else if(typeof o === 'string') {
                 o = regexUrl(((base || '') + (route.groupUrl || '') + (t === 'HASH' ? config.prefixHash : '')+ o), ctx);
+                urls.push(o);
             }
             return o;
         }
@@ -323,6 +325,9 @@ if (!Array.prototype.filter) {
                             }
 
                             exec_route(o, get);
+                        } else {
+                            errorAccessMethod(mods.join(','), url);
+                            throw new Error('Error: access method not allowed');
                         }
                     }
                 }.bind(this))
@@ -335,9 +340,63 @@ if (!Array.prototype.filter) {
             }
 
             if (typeof error === 'function' && pass === false) {
+                pageNotFount();
                 error();
             }
         };
+        
+        /**
+         *
+         * @param {Array} urls
+         */
+        function pageNotFount() {
+            if (config.showPageNotFount === false) return;
+
+            function str_url() {
+                urls.forEach(function (r, index) {
+                    urls[index] = (r.source.replace(/[\\]/g, ''));
+                });
+                return urls.join('<br>^');
+            }
+
+            document.querySelector('html').innerHTML = '<!DOCTYPE html>'+
+                '<html><head>'+
+                '<title>error: 404 page not fount</title>'+
+                '<style>'+
+                '* {margin: 0;padding: 0;box-sizing: border-box;}'+
+                'html, body {background-color: #F1F1F1;}'+
+                'header {background: #32d4ff;color: white;line-height: 60px;padding: 0 20px;font-size: 25px;'+
+                'text-transform: capitalize; box-shadow: 0 2px 2px rgba(185, 185, 185, 0.66);}'+
+                'main > div {width: 1000px;margin: auto;margin-top: 3em;padding: 3em 10px;line-height: 30px;border: 10px solid #ffa2a2;background: white;color: #454545;} .urls { color: #000; padding-left: 30px;font-family: monospace;}'+
+                '</style>'+
+                '</head><body>'+
+                '<header>Error: 404 Page Not Fount</header>'+
+                '<main><div>'+
+                '<p><b>code:</b> 404</p><p><b>type error:</b> page not fount</p><div style="display:flex;"><b>urls:</b><p class="urls"> ^'+ str_url() + '</p></div></div></main></body></html>';
+        }
+
+        /**
+         * @param {String} method
+         * @param {String} url
+         */
+        function errorAccessMethod(method, url) {
+            if (config.showAccessError === false) return;
+            document.querySelector('html').innerHTML = '<!DOCTYPE html>'+
+                '<html><head>'+
+                '<title>error: access method not allowed</title>'+
+                '<style>'+
+                '* {margin: 0;padding: 0;box-sizing: border-box;}'+
+                'html, body {background-color: #F1F1F1;}'+
+                'header {background: #32d4ff;color: white;line-height: 60px;padding: 0 20px;font-size: 25px;'+
+                'text-transform: capitalize; box-shadow: 0 2px 2px rgba(185, 185, 185, 0.66);}'+
+                'main > div {width: 1000px;margin: auto;margin-top: 3em;padding: 3em 10px;line-height: 30px;border: 10px solid #ffa2a2;background: white;color: #454545;}'+
+                '</style>'+
+                '</head><body>'+
+                '<header>error: access method not allowed</header>'+
+                '<main><div>'+
+                '<p>method: '+method+'</p><p>url: '+ url +'</p><p>type error: method not allowed</p>'+
+                '</div></main></body></html>';
+        }
     };
 
 }(window));
